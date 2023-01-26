@@ -1,0 +1,8 @@
+# Files
+*.o
+*.gif
+*.pdf
+compile_commands.json
+
+# Directories
+.cache/
