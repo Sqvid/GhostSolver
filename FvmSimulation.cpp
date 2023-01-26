@@ -1,0 +1,190 @@
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include <iostream>
+#include <vector>
+
+#include "FvmSimulation.hpp"
+
+using std::size_t;
+
+namespace fvm {
+	void EulerData::convertToConserved(double gamma) {
+		int d = static_cast<int>(PrimitiveQuant::density);
+		int v = static_cast<int>(PrimitiveQuant::velocity);
+		int p = static_cast<int>(PrimitiveQuant::pressure);
+
+		for (size_t i = 0; i < data_.size(); ++i) {
+			// Convert velocity to momentum.
+			data_[i][v] *= data_[i][d];
+
+			// Convert pressure to energy.
+			data_[i][p] = (data_[i][p] / (gamma - 1))
+				+ 0.5 * ((data_[i][v]*data_[i][v]) / data_[i][d]);
+		}
+
+		mode_ = EulerDataMode::conserved;
+	}
+
+	void EulerData::convertToPrimitive(double gamma) {
+		int d = static_cast<size_t>(ConservedQuant::density);
+		int mo = static_cast<int>(ConservedQuant::momentum);
+		int e = static_cast<int>(ConservedQuant::energy);
+
+		for (size_t i = 0; i < data_.size(); ++i) {
+			// Convert energy to pressure.
+			data_[i][e] = (gamma - 1) * (data_[i][e] - 0.5 * ((data_[i][mo]*data_[i][mo]) / data_[i][d]));
+
+			// Convert momentum to velocity.
+			data_[i][mo] /= data_[i][d];
+		}
+
+		mode_ = EulerDataMode::primitive;
+	}
+
+	// Constructor declaration
+	Simulation::Simulation(unsigned int nCells, double xStart, double xEnd,
+			double tStart, double tEnd, double cfl, double gamma,
+			std::function<double (double)> densityDist,
+			std::function<double (double)> velocityDist,
+			std::function<double (double)> pressureDist,
+			FluxScheme fluxScheme) {
+
+		// TODO: Add checks to enforce sane values. E.g. Positive nCells.
+		nCells_ = nCells;
+		xStart_ = xStart;
+		xEnd_ = xEnd;
+		tStart_ = tStart;
+		tEnd_ = tEnd;
+		tNow_ = tStart;
+		cfl_ = cfl;
+		dx_ = (xEnd_ - xStart_) / nCells_;
+		gamma_ = gamma;
+		solution_.data().resize(nCells_ + 2);
+		flux_.resize(nCells_ + 1);
+		fluxScheme_ = fluxScheme;
+		densityDist_ = densityDist;
+		velocityDist_ = velocityDist;
+		pressureDist_ = pressureDist;
+
+		// Populate the solution space with the initail function.
+		for (size_t i = 0; i < solution_.data().size(); ++i) {
+			// ith cell centre
+			double x = xStart_ + (i - 0.5) * dx_;
+
+			solution_.density(i) = densityDist_(x);
+			solution_.velocity(i) = velocityDist_(x);
+			solution_.pressure(i) = pressureDist_(x);
+		}
+
+		// TODO: Support other boundary conditions.
+		// Apply transmissive boundary conditions.
+		solution_.velocity(0) = solution_.velocity(1);
+		solution_.velocity(nCells_ + 1) = solution_.velocity(nCells_);
+		solution_.density(0) = solution_.density(1);
+		solution_.density(0) = solution_.density(1);
+		solution_.pressure(nCells_ + 1) = solution_.pressure(nCells_);
+		solution_.pressure(nCells_ + 1) = solution_.pressure(nCells_);
+
+		dt_ = calcTimeStep_();
+	}
+
+	// Heuristic to find a timestep to keep cell updates stable.
+	double Simulation::calcTimeStep_() {
+		double vMax = 0;
+
+		for (size_t i = 1; i < solution_.size(); ++i) {
+			// v = velocity + sound speed
+			double v = std::fabs(solution_.velocity(i))
+				+ std::sqrt((gamma_ * solution_.pressure(i))
+						/ solution_.pressure(i));
+
+			if (v > vMax) {
+				vMax = v;
+			}
+		}
+
+		return cfl_ * (dx_ / vMax);
+	}
+
+	// Evolve the simulation one timestep.
+	void Simulation::step() {
+		dt_ = calcTimeStep_();
+		tNow_ += dt_;
+
+		int d = static_cast<int>(ConservedQuant::density);
+		int mo = static_cast<int>(ConservedQuant::momentum);
+		int e = static_cast<int>(ConservedQuant::energy);
+
+		// Compute flux vector.
+		for (size_t i = 0; i < flux_.size(); ++i) {
+			flux_[i][d] = calcFlux_(i, ConservedQuant::density);
+			flux_[i][mo] = calcFlux_(i, ConservedQuant::momentum);
+			flux_[i][e] = calcFlux_(i, ConservedQuant::energy);
+		}
+
+		for (unsigned int i = 1; i <= nCells_; ++i) {
+			solution_.data_[i][d] = solution_.data_[i][d] - (dt_/dx_) * (flux_[i][d] - flux_[i - 1][d]);
+			solution_.data_[i][mo] = solution_.data_[i][mo] - (dt_/dx_) * (flux_[i][mo] - flux_[i - 1][mo]);
+			solution_.data_[i][e] = solution_.data_[i][e] - (dt_/dx_) * (flux_[i][e] - flux_[i - 1][e]);
+		}
+
+		// Apply boundary conditions.
+		solution_.data_[0] = solution_.data_[1];
+		solution_.data_[nCells_ + 1] = solution_.data_[nCells_];
+	}
+
+	// Return the fluxes for the conserved quantities.
+	double Simulation::fluxExpr_(size_t i, ConservedQuant quant) {
+		double rhoV = solution_.data_[i][static_cast<int>(ConservedQuant::momentum)];
+		double rho = solution_.data_[i][static_cast<int>(ConservedQuant::density)];
+		double e = solution_.data_[i][static_cast<int>(ConservedQuant::energy)];
+		double p = (gamma_ - 1) * (e - (rhoV*rhoV)/(2*rho));
+
+		if (quant == ConservedQuant::density) {
+			return rhoV;
+
+		} else if (quant == ConservedQuant::momentum) {
+			return (rhoV*rhoV)/rho + p;
+
+		} else if (quant == ConservedQuant::energy) {
+			return (e + p) * (rhoV / rho);
+		}
+
+		return 0;
+	}
+
+	double Simulation::lfFlux_(size_t i, ConservedQuant quant) {
+		int q = static_cast<int>(quant);
+
+		return 0.5 * (dx_/dt_) * (solution_.data_[i][q] - solution_.data_[i + 1][q])
+			+ 0.5 * (fluxExpr_(i + 1, quant)
+			+ fluxExpr_(i, quant));
+	}
+
+	double Simulation::richtmyerFlux_(size_t i, ConservedQuant quant) {
+		int q = static_cast<int>(quant);
+
+		double halfStepUpdate =
+			0.5 * (solution_.data_[i][q] + solution_.data_[i+1][q])
+			- 0.5 * (dt_/dx_)
+			* (fluxExpr_(i + 1, quant) - fluxExpr_(i, quant));
+
+		return fluxExpr_(halfStepUpdate, quant);
+	}
+
+	// Return the appropriate value for the given cell, flux scheme, and flux expression.
+	double Simulation::calcFlux_(size_t i, ConservedQuant quant) {
+		if (fluxScheme_ == FluxScheme::laxFriedrich) {
+			return lfFlux_(i, quant);
+
+		} else if (fluxScheme_ == FluxScheme::richtmyer) {
+			return richtmyerFlux_(i, quant);
+
+		} else if (fluxScheme_ == FluxScheme::force) {
+			return 0.5 * (lfFlux_(i, quant) + richtmyerFlux_(i, quant));
+		}
+
+		return 0;
+	}
+}
