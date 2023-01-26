@@ -55,11 +55,18 @@ double pressureDist(double x) {
 void outputSim(std::ofstream& output, fvm::Simulation& sim) {
 	for (size_t i = 0; i < sim.nCells(); ++i) {
 		double x = sim.xStart() + i * sim.dx();
-		double d = sim.data().density(i);
-		double v = sim.data().velocity(i);
-		double p = sim.data().pressure(i);
 
-		output << x << " " << d << " " << v << " " << p << "\n";
+		// Indices of primitive quantities.
+		int d = static_cast<int>(fvm::PrimitiveQuant::density);
+		int v = static_cast<int>(fvm::PrimitiveQuant::velocity);
+		int p = static_cast<int>(fvm::PrimitiveQuant::pressure);
+
+		// Values of primitive quantities.
+		double density = sim.getQuantity(i, d);
+		double velocity = sim.getQuantity(i, v);
+		double pressure = sim.getQuantity(i, p);
+
+		output << x << " " << density << " " << velocity << " " << pressure << "\n";
 	}
 
 	// Delimit Gnuplot code block with two blank lines.

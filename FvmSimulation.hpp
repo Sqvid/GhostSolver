@@ -36,9 +36,6 @@ namespace fvm {
 		godunov
 	};
 
-	// TODO; Move forward declaration.
-	class Simulation;
-
 	class EulerData {
 		public:
 			// Constructor
@@ -57,9 +54,6 @@ namespace fvm {
 			EulerDataMode mode() { return mode_; }
 			std::array<double, 3>& front() { return data_.front(); }
 			std::array<double, 3>& back() { return data_.back(); }
-			double& velocity(size_t i) { return data_[i][static_cast<int>(PrimitiveQuant::velocity)]; }
-			double& density(size_t i) { return data_[i][static_cast<int>(PrimitiveQuant::density)]; }
-			double& pressure(size_t i) { return data_[i][static_cast<int>(PrimitiveQuant::pressure)]; }
 
 			double getQuantity(size_t tripletIndex, size_t quantIndex);
 
@@ -96,8 +90,15 @@ namespace fvm {
 			double dx() { return dx_; }
 			double dt() { return dt_; }
 			double gamma() { return gamma_; }
-			EulerData& data() { return eulerData_; }
+			EulerData data() { return eulerData_; }
+
+			// Wrapper around EulerData qunatity getter.
+			double getQuantity(size_t tripletIndex, size_t quantIndex) {
+				return eulerData_.getQuantity(tripletIndex, quantIndex);
+			}
+
 			//Setters
+			// Wrapper around EulerData conversion functions.
 			void convertToConserved() {eulerData_.convertToConserved(gamma_);}
 			void convertToPrimitive() {eulerData_.convertToPrimitive(gamma_);}
 

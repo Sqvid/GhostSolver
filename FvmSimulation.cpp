@@ -81,24 +81,32 @@ namespace fvm {
 		velocityDist_ = velocityDist;
 		pressureDist_ = pressureDist;
 
+		// Indices for primitive quantities.
+		int dIndex = static_cast<int>(PrimitiveQuant::density);
+		int vIndex = static_cast<int>(PrimitiveQuant::velocity);
+		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
+
 		// Populate the solution space with the initail function.
 		for (size_t i = 0; i < eulerData_.data().size(); ++i) {
 			// ith cell centre
 			double x = xStart_ + (i - 0.5) * dx_;
 
-			eulerData_.density(i) = densityDist_(x);
-			eulerData_.velocity(i) = velocityDist_(x);
-			eulerData_.pressure(i) = pressureDist_(x);
+
+			eulerData_.setQuantity(i, dIndex, densityDist_(x));
+			eulerData_.setQuantity(i, vIndex, velocityDist_(x));
+			eulerData_.setQuantity(i, pIndex, pressureDist_(x));
 		}
 
 		// TODO: Support other boundary conditions.
 		// Apply transmissive boundary conditions.
-		eulerData_.velocity(0) = eulerData_.velocity(1);
-		eulerData_.velocity(nCells_ + 1) = eulerData_.velocity(nCells_);
-		eulerData_.density(0) = eulerData_.density(1);
-		eulerData_.density(0) = eulerData_.density(1);
-		eulerData_.pressure(nCells_ + 1) = eulerData_.pressure(nCells_);
-		eulerData_.pressure(nCells_ + 1) = eulerData_.pressure(nCells_);
+		eulerData_.setQuantity(0, vIndex, eulerData_.getQuantity(1, vIndex));
+		eulerData_.setQuantity(nCells_ + 1, vIndex, eulerData_.getQuantity(nCells_, vIndex));
+
+		eulerData_.setQuantity(0, dIndex, eulerData_.getQuantity(1, dIndex));
+		eulerData_.setQuantity(nCells_ + 1, dIndex, eulerData_.getQuantity(nCells_, dIndex));
+
+		eulerData_.setQuantity(0, dIndex, eulerData_.getQuantity(1, dIndex));
+		eulerData_.setQuantity(nCells_ + 1, dIndex, eulerData_.getQuantity(nCells_, dIndex));
 
 		dt_ = calcTimeStep_();
 	}
@@ -107,11 +115,17 @@ namespace fvm {
 	double Simulation::calcTimeStep_() {
 		double vMax = 0;
 
+		// Indices for primitive quantities.
+		int vIndex = static_cast<int>(PrimitiveQuant::velocity);
+		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
+
 		for (size_t i = 1; i < eulerData_.size(); ++i) {
+			double velocity = eulerData_.getQuantity(i, vIndex);
+			double pressure = eulerData_.getQuantity(i, pIndex);
+
 			// v = velocity + sound speed
-			double v = std::fabs(eulerData_.velocity(i))
-				+ std::sqrt((gamma_ * eulerData_.pressure(i))
-						/ eulerData_.pressure(i));
+			double v = std::fabs(velocity)
+				+ std::sqrt((gamma_ * pressure) / pressure);
 
 			if (v > vMax) {
 				vMax = v;
