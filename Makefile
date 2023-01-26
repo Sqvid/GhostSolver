@@ -6,7 +6,7 @@ CPPFLAGS=-std=c++14 -Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor \
 DBGFLAGS = -g
 OPTFLAG = -O3
 
-BIN = practical4
+BIN = simulation
 
 %.o: %.cpp
 	$(CC) $(CPPFLAGS) -c $^
