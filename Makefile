@@ -1,5 +1,5 @@
-CC = g++
-CPPFLAGS=-std=c++14 -Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor \
+CXX = g++
+CXXFLAGS=-std=c++14 -Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor \
 	  -Wold-style-cast -Wcast-align -Wuseless-cast \
 	  -Wdouble-promotion -Wnull-dereference -Wmisleading-indentation \
 	  -Wduplicated-cond -Wformat=2
@@ -9,26 +9,26 @@ OPTFLAG = -O3
 BIN = simulation
 
 %.o: %.cpp
-	$(CC) $(CPPFLAGS) -c $^
+	$(CXX) $(CXXFLAGS) -c $^
 
 $(BIN): *.o
-	$(CC) $(CPPFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^
 
-debug: CPPFLAGS += $(DBGFLAGS)
+debug: CXXFLAGS += $(DBGFLAGS)
 debug : $(BIN)
 
-release: CPPFLAGS += $(OPTFLAG)
+release: CXXFLAGS += $(OPTFLAG)
 release: $(BIN)
 
 .PHONY: clean
 clean:
-	rm *.o
-	rm $(BIN)
-	rm *.dat
-	rm *.gif
+	$(RM) *.o
+	$(RM) $(BIN)
+	$(RM) *.dat
+	$(RM) *.gif
 
 tidy:
-	rm *.o
+	$(RM) *.o
 
 run:
 	./$(BIN)
