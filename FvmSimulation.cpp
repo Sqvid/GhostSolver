@@ -42,6 +42,20 @@ namespace fvm {
 		mode_ = EulerDataMode::primitive;
 	}
 
+	double EulerData::getQuantity(size_t tripletIndex, size_t quantIndex) {
+		size_t i = tripletIndex;
+		size_t q = quantIndex;
+
+		return data_[i][q];
+	}
+
+	void EulerData::setQuantity(size_t tripletIndex, size_t quantIndex, double value) {
+		size_t i = tripletIndex;
+		size_t q = quantIndex;
+
+		data_[i][q] = value;
+	}
+
 	// Constructor declaration
 	Simulation::Simulation(unsigned int nCells, double xStart, double xEnd,
 			double tStart, double tEnd, double cfl, double gamma,
@@ -124,21 +138,30 @@ namespace fvm {
 		}
 
 		for (unsigned int i = 1; i <= nCells_; ++i) {
-			eulerData_.data_[i][d] = eulerData_.data_[i][d] - (dt_/dx_) * (flux_[i][d] - flux_[i - 1][d]);
-			eulerData_.data_[i][mo] = eulerData_.data_[i][mo] - (dt_/dx_) * (flux_[i][mo] - flux_[i - 1][mo]);
-			eulerData_.data_[i][e] = eulerData_.data_[i][e] - (dt_/dx_) * (flux_[i][e] - flux_[i - 1][e]);
+			double newDensity = eulerData_.getQuantity(i, d) - (dt_/dx_) * (flux_[i][d] - flux_[i - 1][d]);
+			double newMomentum = eulerData_.getQuantity(i, mo) - (dt_/dx_) * (flux_[i][mo] - flux_[i - 1][mo]);
+			double newEnergy = eulerData_.getQuantity(i, e) - (dt_/dx_) * (flux_[i][e] - flux_[i - 1][e]);
+
+			eulerData_.setQuantity(i, d, newDensity);
+			eulerData_.setQuantity(i, mo, newMomentum);
+			eulerData_.setQuantity(i, e, newEnergy);
 		}
 
 		// Apply boundary conditions.
-		eulerData_.data_[0] = eulerData_.data_[1];
-		eulerData_.data_[nCells_ + 1] = eulerData_.data_[nCells_];
+		eulerData_.setQuantity(0, 0, eulerData_.getQuantity(1, 0));
+		eulerData_.setQuantity(0, 1, eulerData_.getQuantity(1, 1));
+		eulerData_.setQuantity(0, 2, eulerData_.getQuantity(1, 2));
+
+		eulerData_.setQuantity(nCells_ + 1, 0, eulerData_.getQuantity(nCells_, 0));
+		eulerData_.setQuantity(nCells_ + 1, 1, eulerData_.getQuantity(nCells_, 1));
+		eulerData_.setQuantity(nCells_ + 1, 2, eulerData_.getQuantity(nCells_, 2));
 	}
 
 	// Return the fluxes for the conserved quantities.
 	double Simulation::fluxExpr_(size_t i, ConservedQuant quant) {
-		double rhoV = eulerData_.data_[i][static_cast<int>(ConservedQuant::momentum)];
-		double rho = eulerData_.data_[i][static_cast<int>(ConservedQuant::density)];
-		double e = eulerData_.data_[i][static_cast<int>(ConservedQuant::energy)];
+		double rhoV = eulerData_.getQuantity(i, static_cast<int>(ConservedQuant::momentum));
+		double rho = eulerData_.getQuantity(i, static_cast<int>(ConservedQuant::density));
+		double e = eulerData_.getQuantity(i, static_cast<int>(ConservedQuant::energy));
 		double p = (gamma_ - 1) * (e - (rhoV*rhoV)/(2*rho));
 
 		if (quant == ConservedQuant::density) {
@@ -157,7 +180,7 @@ namespace fvm {
 	double Simulation::lfFlux_(size_t i, ConservedQuant quant) {
 		int q = static_cast<int>(quant);
 
-		return 0.5 * (dx_/dt_) * (eulerData_.data_[i][q] - eulerData_.data_[i + 1][q])
+		return 0.5 * (dx_/dt_) * (eulerData_.getQuantity(i, q) - eulerData_.getQuantity(i + 1, q))
 			+ 0.5 * (fluxExpr_(i + 1, quant)
 			+ fluxExpr_(i, quant));
 	}
@@ -166,7 +189,7 @@ namespace fvm {
 		int q = static_cast<int>(quant);
 
 		double halfStepUpdate =
-			0.5 * (eulerData_.data_[i][q] + eulerData_.data_[i+1][q])
+			0.5 * (eulerData_.getQuantity(i, q) + eulerData_.getQuantity(i + 1, q))
 			- 0.5 * (dt_/dx_)
 			* (fluxExpr_(i + 1, quant) - fluxExpr_(i, quant));
 

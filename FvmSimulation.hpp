@@ -61,15 +61,14 @@ namespace fvm {
 			double& density(size_t i) { return data_[i][static_cast<int>(PrimitiveQuant::density)]; }
 			double& pressure(size_t i) { return data_[i][static_cast<int>(PrimitiveQuant::pressure)]; }
 
+			double getQuantity(size_t tripletIndex, size_t quantIndex);
+
+			// Setters
+			void setQuantity(size_t tripletIndex, size_t quantIndex, double value);
 		private:
 			// Private member data
 			TripletVector data_;
 			EulerDataMode mode_;
-
-			// Private member functions
-
-			// Friend classes and functions
-			friend class Simulation;
 	};
 
 	// The simulation contains the parameters of the simulation as well as the
