@@ -60,7 +60,7 @@ namespace fvm {
 		cfl_ = cfl;
 		dx_ = (xEnd_ - xStart_) / nCells_;
 		gamma_ = gamma;
-		solution_.data().resize(nCells_ + 2);
+		eulerData_.data().resize(nCells_ + 2);
 		flux_.resize(nCells_ + 1);
 		fluxScheme_ = fluxScheme;
 		densityDist_ = densityDist;
@@ -68,23 +68,23 @@ namespace fvm {
 		pressureDist_ = pressureDist;
 
 		// Populate the solution space with the initail function.
-		for (size_t i = 0; i < solution_.data().size(); ++i) {
+		for (size_t i = 0; i < eulerData_.data().size(); ++i) {
 			// ith cell centre
 			double x = xStart_ + (i - 0.5) * dx_;
 
-			solution_.density(i) = densityDist_(x);
-			solution_.velocity(i) = velocityDist_(x);
-			solution_.pressure(i) = pressureDist_(x);
+			eulerData_.density(i) = densityDist_(x);
+			eulerData_.velocity(i) = velocityDist_(x);
+			eulerData_.pressure(i) = pressureDist_(x);
 		}
 
 		// TODO: Support other boundary conditions.
 		// Apply transmissive boundary conditions.
-		solution_.velocity(0) = solution_.velocity(1);
-		solution_.velocity(nCells_ + 1) = solution_.velocity(nCells_);
-		solution_.density(0) = solution_.density(1);
-		solution_.density(0) = solution_.density(1);
-		solution_.pressure(nCells_ + 1) = solution_.pressure(nCells_);
-		solution_.pressure(nCells_ + 1) = solution_.pressure(nCells_);
+		eulerData_.velocity(0) = eulerData_.velocity(1);
+		eulerData_.velocity(nCells_ + 1) = eulerData_.velocity(nCells_);
+		eulerData_.density(0) = eulerData_.density(1);
+		eulerData_.density(0) = eulerData_.density(1);
+		eulerData_.pressure(nCells_ + 1) = eulerData_.pressure(nCells_);
+		eulerData_.pressure(nCells_ + 1) = eulerData_.pressure(nCells_);
 
 		dt_ = calcTimeStep_();
 	}
@@ -93,11 +93,11 @@ namespace fvm {
 	double Simulation::calcTimeStep_() {
 		double vMax = 0;
 
-		for (size_t i = 1; i < solution_.size(); ++i) {
+		for (size_t i = 1; i < eulerData_.size(); ++i) {
 			// v = velocity + sound speed
-			double v = std::fabs(solution_.velocity(i))
-				+ std::sqrt((gamma_ * solution_.pressure(i))
-						/ solution_.pressure(i));
+			double v = std::fabs(eulerData_.velocity(i))
+				+ std::sqrt((gamma_ * eulerData_.pressure(i))
+						/ eulerData_.pressure(i));
 
 			if (v > vMax) {
 				vMax = v;
@@ -124,21 +124,21 @@ namespace fvm {
 		}
 
 		for (unsigned int i = 1; i <= nCells_; ++i) {
-			solution_.data_[i][d] = solution_.data_[i][d] - (dt_/dx_) * (flux_[i][d] - flux_[i - 1][d]);
-			solution_.data_[i][mo] = solution_.data_[i][mo] - (dt_/dx_) * (flux_[i][mo] - flux_[i - 1][mo]);
-			solution_.data_[i][e] = solution_.data_[i][e] - (dt_/dx_) * (flux_[i][e] - flux_[i - 1][e]);
+			eulerData_.data_[i][d] = eulerData_.data_[i][d] - (dt_/dx_) * (flux_[i][d] - flux_[i - 1][d]);
+			eulerData_.data_[i][mo] = eulerData_.data_[i][mo] - (dt_/dx_) * (flux_[i][mo] - flux_[i - 1][mo]);
+			eulerData_.data_[i][e] = eulerData_.data_[i][e] - (dt_/dx_) * (flux_[i][e] - flux_[i - 1][e]);
 		}
 
 		// Apply boundary conditions.
-		solution_.data_[0] = solution_.data_[1];
-		solution_.data_[nCells_ + 1] = solution_.data_[nCells_];
+		eulerData_.data_[0] = eulerData_.data_[1];
+		eulerData_.data_[nCells_ + 1] = eulerData_.data_[nCells_];
 	}
 
 	// Return the fluxes for the conserved quantities.
 	double Simulation::fluxExpr_(size_t i, ConservedQuant quant) {
-		double rhoV = solution_.data_[i][static_cast<int>(ConservedQuant::momentum)];
-		double rho = solution_.data_[i][static_cast<int>(ConservedQuant::density)];
-		double e = solution_.data_[i][static_cast<int>(ConservedQuant::energy)];
+		double rhoV = eulerData_.data_[i][static_cast<int>(ConservedQuant::momentum)];
+		double rho = eulerData_.data_[i][static_cast<int>(ConservedQuant::density)];
+		double e = eulerData_.data_[i][static_cast<int>(ConservedQuant::energy)];
 		double p = (gamma_ - 1) * (e - (rhoV*rhoV)/(2*rho));
 
 		if (quant == ConservedQuant::density) {
@@ -157,7 +157,7 @@ namespace fvm {
 	double Simulation::lfFlux_(size_t i, ConservedQuant quant) {
 		int q = static_cast<int>(quant);
 
-		return 0.5 * (dx_/dt_) * (solution_.data_[i][q] - solution_.data_[i + 1][q])
+		return 0.5 * (dx_/dt_) * (eulerData_.data_[i][q] - eulerData_.data_[i + 1][q])
 			+ 0.5 * (fluxExpr_(i + 1, quant)
 			+ fluxExpr_(i, quant));
 	}
@@ -166,7 +166,7 @@ namespace fvm {
 		int q = static_cast<int>(quant);
 
 		double halfStepUpdate =
-			0.5 * (solution_.data_[i][q] + solution_.data_[i+1][q])
+			0.5 * (eulerData_.data_[i][q] + eulerData_.data_[i+1][q])
 			- 0.5 * (dt_/dx_)
 			* (fluxExpr_(i + 1, quant) - fluxExpr_(i, quant));
 

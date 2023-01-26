@@ -97,10 +97,10 @@ namespace fvm {
 			double dx() { return dx_; }
 			double dt() { return dt_; }
 			double gamma() { return gamma_; }
-			EulerData& solution() { return solution_; }
+			EulerData& data() { return eulerData_; }
 			//Setters
-			void convertToConserved() {solution_.convertToConserved(gamma_);}
-			void convertToPrimitive() {solution_.convertToPrimitive(gamma_);}
+			void convertToConserved() {eulerData_.convertToConserved(gamma_);}
+			void convertToPrimitive() {eulerData_.convertToPrimitive(gamma_);}
 
 			// Public member functions
 			void step();
@@ -120,7 +120,7 @@ namespace fvm {
 			std::function<double (double)> densityDist_;
 			std::function<double (double)> velocityDist_;
 			std::function<double (double)> pressureDist_;
-			EulerData solution_;
+			EulerData eulerData_;
 			TripletVector flux_;
 
 			// Private member functions

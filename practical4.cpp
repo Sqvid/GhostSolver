@@ -55,9 +55,9 @@ double pressureDist(double x) {
 void outputSim(std::ofstream& output, fvm::Simulation& sim) {
 	for (size_t i = 0; i < sim.nCells(); ++i) {
 		double x = sim.xStart() + i * sim.dx();
-		double d = sim.solution().density(i);
-		double v = sim.solution().velocity(i);
-		double p = sim.solution().pressure(i);
+		double d = sim.data().density(i);
+		double v = sim.data().velocity(i);
+		double p = sim.data().pressure(i);
 
 		output << x << " " << d << " " << v << " " << p << "\n";
 	}
