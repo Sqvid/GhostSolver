@@ -171,6 +171,28 @@ namespace fvm {
 		eulerData_.setQuantity(nCells_ + 1, 2, eulerData_.getQuantity(nCells_, 2));
 	}
 
+	// Output simulation data in Gnuplot format.
+	void Simulation::saveToFile(std::ofstream& output) {
+		for (size_t i = 0; i < nCells_; ++i) {
+			double x = xStart_ + i * dx_;
+
+			// Indices of primitive quantities.
+			int d = static_cast<int>(fvm::PrimitiveQuant::density);
+			int v = static_cast<int>(fvm::PrimitiveQuant::velocity);
+			int p = static_cast<int>(fvm::PrimitiveQuant::pressure);
+
+			// Values of primitive quantities.
+			double density = eulerData_.getQuantity(i, d);
+			double velocity = eulerData_.getQuantity(i, v);
+			double pressure = eulerData_.getQuantity(i, p);
+
+			output << x << " " << density << " " << velocity << " " << pressure << "\n";
+		}
+
+		// Delimit Gnuplot code block with two blank lines.
+		output << "\n\n";
+	}
+
 	// Return the fluxes for the conserved quantities.
 	double Simulation::fluxExpr_(size_t i, ConservedQuant quant) {
 		double rhoV = eulerData_.getQuantity(i, static_cast<int>(ConservedQuant::momentum));

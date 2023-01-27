@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <functional>
 #include <vector>
+#include <fstream>
 
 namespace fvm {
 	// A vector of arrays of length three (triplet)
@@ -104,6 +105,8 @@ namespace fvm {
 
 			// Public member functions
 			void step();
+			void saveToFile(std::ofstream& output);
+
 		private:
 			// Private member data
 			unsigned int nCells_;
