@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
 #include <functional>
 #include <iostream>
 #include <vector>
@@ -193,11 +194,17 @@ namespace fvm {
 		output << "\n\n";
 	}
 
-	// Return the fluxes for the conserved quantities.
+	// Return the flux for the conserved quantity in cell i.
 	double Simulation::fluxExpr_(size_t i, ConservedQuant quant) {
 		double rhoV = eulerData_.getQuantity(i, static_cast<int>(ConservedQuant::momentum));
 		double rho = eulerData_.getQuantity(i, static_cast<int>(ConservedQuant::density));
 		double e = eulerData_.getQuantity(i, static_cast<int>(ConservedQuant::energy));
+
+		//FIXME
+		if (rho == 0) {
+			std::cerr << "About to divide by zero!: i = " << i << "\n";
+		}
+
 		double p = (gamma_ - 1) * (e - (rhoV*rhoV)/(2*rho));
 
 		if (quant == ConservedQuant::density) {
@@ -213,6 +220,7 @@ namespace fvm {
 		return 0;
 	}
 
+	// Lax-Friedrichs flux function.
 	double Simulation::lfFlux_(size_t i, ConservedQuant quant) {
 		int q = static_cast<int>(quant);
 
@@ -221,6 +229,7 @@ namespace fvm {
 			+ fluxExpr_(i, quant));
 	}
 
+	// Richtmeyer flux function.
 	double Simulation::richtmyerFlux_(size_t i, ConservedQuant quant) {
 		int q = static_cast<int>(quant);
 
@@ -229,6 +238,7 @@ namespace fvm {
 			- 0.5 * (dt_/dx_)
 			* (fluxExpr_(i + 1, quant) - fluxExpr_(i, quant));
 
+		// FIXME: This doesn't make any sense.
 		return fluxExpr_(halfStepUpdate, quant);
 	}
 
