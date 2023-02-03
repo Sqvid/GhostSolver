@@ -4,7 +4,7 @@ CXXFLAGS=-std=c++14 -Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor \
 	  -Wdouble-promotion -Wnull-dereference -Wmisleading-indentation \
 	  -Wduplicated-cond -Wformat=2
 DBGFLAGS = -g
-OPTFLAG = -O3
+OPTFLAG = -O2
 
 BIN = simulation
 

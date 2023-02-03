@@ -1,11 +1,7 @@
 #include <cmath>
 #include <cstddef>
-#include <cstdio>
 #include <functional>
 #include <iostream>
-#include <iterator>
-#include <utility>
-#include <vector>
 
 #include "FvmSimulation.hpp"
 
@@ -63,49 +59,48 @@ namespace fvm {
 		return ans;
 	}
 
-	void EulerData::makeConserved(double gamma) {
-		int d = static_cast<int>(PrimitiveQuant::density);
-		int v = static_cast<int>(PrimitiveQuant::velocity);
-		int p = static_cast<int>(PrimitiveQuant::pressure);
+	void EulerData::makeConserved() {
+		// Already in conserved form. Return early.
+		if (mode_ == EulerDataMode::conserved) {
+			return;
+		}
+
+		int dIndex = static_cast<int>(PrimitiveQuant::density);
+		int vIndex = static_cast<int>(PrimitiveQuant::velocity);
+		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
 		for (size_t i = 0; i < data_.size(); ++i) {
 			// Convert velocity to momentum.
-			data_[i][v] *= data_[i][d];
+			data_[i][vIndex] *= data_[i][dIndex];
 
 			// Convert pressure to energy.
-			data_[i][p] = (data_[i][p] / (gamma - 1))
-				+ 0.5 * ((data_[i][v]*data_[i][v]) / data_[i][d]);
+			data_[i][pIndex] = (data_[i][pIndex] / (gamma_ - 1))
+				+ 0.5 * ((data_[i][vIndex] * data_[i][vIndex]) / data_[i][dIndex]);
 		}
 
 		mode_ = EulerDataMode::conserved;
 	}
 
-	void EulerData::makePrimitive(double gamma) {
-		int d = static_cast<size_t>(ConservedQuant::density);
-		int mo = static_cast<int>(ConservedQuant::momentum);
-		int e = static_cast<int>(ConservedQuant::energy);
+	void EulerData::makePrimitive() {
+		// Already in primitive form. Return early.
+		if (mode_ == EulerDataMode::primitive) {
+			return;
+		}
+
+		int dIndex = static_cast<size_t>(ConservedQuant::density);
+		int moIndex = static_cast<int>(ConservedQuant::momentum);
+		int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		for (size_t i = 0; i < data_.size(); ++i) {
 			// Convert energy to pressure.
-			data_[i][e] = (gamma - 1) * (data_[i][e] - 0.5 * ((data_[i][mo]*data_[i][mo]) / data_[i][d]));
+			data_[i][eIndex] = (gamma_ - 1) * (data_[i][eIndex]
+					- 0.5 * ((data_[i][moIndex] * data_[i][moIndex]) / data_[i][dIndex]));
 
 			// Convert momentum to velocity.
-			data_[i][mo] /= data_[i][d];
+			data_[i][moIndex] /= data_[i][dIndex];
 		}
 
 		mode_ = EulerDataMode::primitive;
-	}
-
-	QuantArray EulerData::getQuantity(size_t tripletIndex) {
-		size_t i = tripletIndex;
-
-		return data_[i];
-	}
-
-	void EulerData::setQuantity(size_t tripletIndex, QuantArray value) {
-		size_t i = tripletIndex;
-
-		data_[i] = value;
 	}
 
 	// Constructor declaration
@@ -114,7 +109,9 @@ namespace fvm {
 			std::function<double (double)> densityDist,
 			std::function<double (double)> velocityDist,
 			std::function<double (double)> pressureDist,
-			FluxScheme fluxScheme) {
+			FluxScheme fluxScheme)
+			// Initialiser list
+			: eulerData_(gamma) {
 
 		// TODO: Add checks to enforce sane values. E.g. Positive nCells.
 		nCells_ = nCells;
@@ -125,6 +122,7 @@ namespace fvm {
 		tNow_ = tStart;
 		cfl_ = cfl;
 		dx_ = (xEnd_ - xStart_) / nCells_;
+		dt_ = 0;
 		gamma_ = gamma;
 		eulerData_.data().resize(nCells_ + 2);
 		flux_.resize(nCells_ + 1);
@@ -154,26 +152,26 @@ namespace fvm {
 		// Apply transmissive boundary conditions.
 		eulerData_.setQuantity(0, eulerData_.getQuantity(1));
 		eulerData_.setQuantity(nCells_ + 1, eulerData_.getQuantity(nCells_));
-
-		dt_ = calcTimeStep_();
 	}
 
 	// Heuristic to find a timestep to keep cell updates stable.
 	double Simulation::calcTimeStep_() {
 		double vMax = 0;
 
-		// Indices for primitive quantities.
-		int vIndex = static_cast<int>(PrimitiveQuant::velocity);
-		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
+		// Indices for conserved quantities.
+		int dIndex = static_cast<int>(ConservedQuant::density);
+		int moIndex = static_cast<int>(ConservedQuant::momentum);
+		int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		for (size_t i = 1; i < eulerData_.size(); ++i) {
 			QuantArray cellValues = eulerData_.getQuantity(i);
-			double velocity = cellValues[vIndex];
-			double pressure = cellValues[pIndex];
+			double rho = cellValues[dIndex];
+			double rhoV = cellValues[moIndex];
+			double e = cellValues[eIndex];
 
 			// v = velocity + sound speed
-			double v = std::fabs(velocity)
-				+ std::sqrt((gamma_ * pressure) / pressure);
+			double v = std::fabs(rhoV / rho)
+				+ std::sqrt((gamma_*(gamma_ - 1)*(e - 0.5*((rhoV*rhoV) / rho))) / rho);
 
 			if (v > vMax) {
 				vMax = v;
@@ -185,6 +183,9 @@ namespace fvm {
 
 	// Evolve the simulation one timestep.
 	void Simulation::step() {
+		// All calculations must be done in conserved mode.
+		eulerData_.makeConserved();
+
 		dt_ = calcTimeStep_();
 		tNow_ += dt_;
 
@@ -207,6 +208,9 @@ namespace fvm {
 
 	// Output simulation data in Gnuplot format.
 	void Simulation::saveToFile(std::ofstream& output) {
+		// Output data in primitive form.
+		eulerData_.makePrimitive();
+
 		for (size_t i = 0; i < nCells_; ++i) {
 			double x = xStart_ + i * dx_;
 
@@ -223,9 +227,6 @@ namespace fvm {
 				<< cellValues[vIndex] << " "
 				<< cellValues[pIndex] << "\n";
 		}
-
-		// Delimit Gnuplot code block with two blank lines.
-		output << "\n\n";
 	}
 
 	// Return the flux for the conserved quantity in cell i.
@@ -266,7 +267,6 @@ namespace fvm {
 			0.5 * (u + uNext)
 			- 0.5 * (dt_/dx_) * (fluxExpr_(uNext) - fluxExpr_(u));
 
-		// FIXME: This doesn't make any sense.
 		return fluxExpr_(halfStepUpdate);
 	}
 

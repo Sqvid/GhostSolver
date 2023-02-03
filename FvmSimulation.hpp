@@ -1,12 +1,11 @@
-#ifndef PRACTICAL4_FVMSIMULATION_HPP
-#define PRACTICAL4_FVMSIMULATION_HPP
+#ifndef GHOSTSOLVER_FVMSIMULATION_HPP
+#define GHOSTSOLVER_FVMSIMULATION_HPP
 
 #include <array>
 #include <cstddef>
 #include <functional>
 #include <vector>
 #include <fstream>
-#include <exception>
 
 namespace fvm {
 	// A vector of arrays of length three (triplet).
@@ -49,28 +48,27 @@ namespace fvm {
 		public:
 			// Constructor
 			// Data is assumed to be in primitive form by default.
-			EulerData(EulerDataMode mode = EulerDataMode::primitive)
+			EulerData(double gamma, EulerDataMode mode = EulerDataMode::primitive)
 				// Initialiser list
-				: mode_(mode) {};
+				: gamma_(gamma), mode_(mode) {};
 
-			void makeConserved(double gamma);
-			void makePrimitive(double gamma);
+			void makeConserved();
+			void makePrimitive();
 
 			// EulerData accessors
 			// Getters
 			size_t size() { return data_.size(); }
 			TripletVector& data() { return data_; }
 			EulerDataMode mode() { return mode_; }
-			std::array<double, 3>& front() { return data_.front(); }
-			std::array<double, 3>& back() { return data_.back(); }
-
-			QuantArray getQuantity(size_t tripletIndex);
+			QuantArray getQuantity(size_t i) { return data_[i]; }
 
 			// Setters
-			void setQuantity(size_t tripletIndex, QuantArray value);
+			void setQuantity(size_t i, QuantArray newValues) { data_[i] = newValues; }
+
 		private:
 			// Private member data
 			TripletVector data_;
+			double gamma_;
 			EulerDataMode mode_;
 	};
 
@@ -102,14 +100,7 @@ namespace fvm {
 			EulerData data() { return eulerData_; }
 
 			// Wrapper around EulerData qunatity getter.
-			QuantArray getQuantity(size_t tripletIndex) {
-				return eulerData_.getQuantity(tripletIndex);
-			}
-
-			//Setters
-			// Wrapper around EulerData conversion functions.
-			void makeConserved() { eulerData_.makeConserved(gamma_); }
-			void makePrimitive() { eulerData_.makePrimitive(gamma_); }
+			QuantArray getQuantity(size_t i) { return eulerData_.getQuantity(i); }
 
 			// Public member functions
 			void step();
@@ -140,6 +131,10 @@ namespace fvm {
 			QuantArray richtmyerFlux_(size_t i);
 			QuantArray calcFlux_(size_t i);
 			QuantArray fluxExpr_(QuantArray u);
+			// Wrappers around EulerData conversion functions.
+			void makeConserved_() { eulerData_.makeConserved(); }
+			void makePrimitive_() { eulerData_.makePrimitive(); }
+
 	};
 }
 
