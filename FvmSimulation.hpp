@@ -2,10 +2,11 @@
 #define GHOSTSOLVER_FVMSIMULATION_HPP
 
 #include <array>
-#include <cstddef>
 #include <functional>
 #include <vector>
 #include <fstream>
+
+using std::size_t;
 
 namespace fvm {
 	// A vector of arrays of length three (triplet).
