@@ -34,5 +34,4 @@ run:
 	./$(BIN)
 
 plot:
-	./$(BIN)
 	./*.plt

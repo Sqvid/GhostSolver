@@ -1,13 +1,17 @@
 #!/bin/env gnuplot
 reset session
 
-numFiles=2
+numFiles=5
 
 file(ft, n) = sprintf("test%d.%s", n, ft)
 
 do for [i=1:numFiles] {
-	set term gif size 800,800 animate delay 1
+	set term gif size 800,800 animate delay 10
 	set output file("gif", i)
+
+	set xrange [:]
+	set yrange [:]
+
 	stats file("dat", i) u 1 nooutput
 	nBlocks = STATS_blocks
 
