@@ -4,9 +4,10 @@
 *.gif
 *.pdf
 compile_commands.json
+*.md
 
 # Directories
 .cache/
 
 # Executable
-practical4
+simulation
