@@ -1,15 +1,19 @@
 #!/bin/env gnuplot
-
 reset session
 set term gif size 800,800 animate delay 1
 
-set output "test1.gif"
+numFiles=3
+file(ft, n) = sprintf("test%d.%s", n, ft)
 
-stats "test1.dat" u 1 nooutput
-N = STATS_blocks
+do for [i=1:3] {
+	print i
+	set output file("gif", i)
+	stats file("dat", i) u 1 nooutput
+	nBlocks = STATS_blocks
 
-do for [i=1:N] {
-	plot "test1.dat" index i-1 u 1:2 with lines,\
-		"" index i-1 u 1:3 with lines,\
-		"" index i-1 u 1:4 with lines
+	do for [j=1:nBlocks] {
+		plot file("dat", i) index j-1 u 1:2 with lines,\
+			"" index j-1 u 1:3 with lines,\
+			"" index j-1 u 1:4 with lines
+	}
 }
