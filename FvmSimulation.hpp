@@ -6,10 +6,19 @@
 #include <functional>
 #include <vector>
 #include <fstream>
+#include <exception>
 
 namespace fvm {
-	// A vector of arrays of length three (triplet)
-	typedef std::vector<std::array<double, 3>> TripletVector;
+	// A vector of arrays of length three (triplet).
+	typedef std::array<double, 3> QuantArray;
+	typedef std::vector<QuantArray> TripletVector;
+
+	// Operator overloads for QuantArray.
+	QuantArray operator+(QuantArray a, QuantArray b);
+	QuantArray operator-(QuantArray a, QuantArray b);
+	QuantArray operator*(double a, QuantArray u);
+	QuantArray operator*(QuantArray u, double a);
+	QuantArray operator/(QuantArray u, double a);
 
 	enum class PrimitiveQuant {
 		density = 0,
@@ -34,7 +43,6 @@ namespace fvm {
 		laxFriedrich,
 		richtmyer,
 		force,
-		godunov
 	};
 
 	class EulerData {
@@ -45,8 +53,8 @@ namespace fvm {
 				// Initialiser list
 				: mode_(mode) {};
 
-			void convertToConserved(double gamma);
-			void convertToPrimitive(double gamma);
+			void makeConserved(double gamma);
+			void makePrimitive(double gamma);
 
 			// EulerData accessors
 			// Getters
@@ -56,10 +64,10 @@ namespace fvm {
 			std::array<double, 3>& front() { return data_.front(); }
 			std::array<double, 3>& back() { return data_.back(); }
 
-			double getQuantity(size_t tripletIndex, size_t quantIndex);
+			QuantArray getQuantity(size_t tripletIndex);
 
 			// Setters
-			void setQuantity(size_t tripletIndex, size_t quantIndex, double value);
+			void setQuantity(size_t tripletIndex, QuantArray value);
 		private:
 			// Private member data
 			TripletVector data_;
@@ -94,14 +102,14 @@ namespace fvm {
 			EulerData data() { return eulerData_; }
 
 			// Wrapper around EulerData qunatity getter.
-			double getQuantity(size_t tripletIndex, size_t quantIndex) {
-				return eulerData_.getQuantity(tripletIndex, quantIndex);
+			QuantArray getQuantity(size_t tripletIndex) {
+				return eulerData_.getQuantity(tripletIndex);
 			}
 
 			//Setters
 			// Wrapper around EulerData conversion functions.
-			void convertToConserved() {eulerData_.convertToConserved(gamma_);}
-			void convertToPrimitive() {eulerData_.convertToPrimitive(gamma_);}
+			void makeConserved() { eulerData_.makeConserved(gamma_); }
+			void makePrimitive() { eulerData_.makePrimitive(gamma_); }
 
 			// Public member functions
 			void step();
@@ -128,10 +136,10 @@ namespace fvm {
 
 			// Private member functions
 			double calcTimeStep_();
-			double lfFlux_(size_t i, ConservedQuant q);
-			double richtmyerFlux_(size_t i, ConservedQuant q);
-			double calcFlux_(size_t i, ConservedQuant q);
-			double fluxExpr_(size_t i, ConservedQuant q);
+			QuantArray lfFlux_(size_t i);
+			QuantArray richtmyerFlux_(size_t i);
+			QuantArray calcFlux_(size_t i);
+			QuantArray fluxExpr_(QuantArray u);
 	};
 }
 

@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <functional>
 #include <iostream>
+#include <iterator>
+#include <utility>
 #include <vector>
 
 #include "FvmSimulation.hpp"
@@ -10,7 +12,58 @@
 using std::size_t;
 
 namespace fvm {
-	void EulerData::convertToConserved(double gamma) {
+	// Operator overloads for QuantArray.
+	QuantArray operator+(QuantArray a, QuantArray b) {
+		QuantArray ans;
+
+		for (size_t i = 0; i < a.size(); ++i) {
+			ans[i] = a[i] + b[i];
+		}
+
+		return ans;
+	}
+
+	QuantArray operator-(QuantArray a, QuantArray b) {
+		QuantArray ans;
+
+		for (size_t i = 0; i < a.size(); ++i) {
+			ans[i] = a[i] - b[i];
+		}
+
+		return ans;
+	}
+
+	QuantArray operator*(double a, QuantArray u) {
+		QuantArray ans;
+
+		for (size_t i = 0; i < u.size(); ++i) {
+			ans[i] = a * u[i];
+		}
+
+		return ans;
+	}
+
+	QuantArray operator*(QuantArray u, double a) {
+		QuantArray ans;
+
+		for (size_t i = 0; i < u.size(); ++i) {
+			ans[i] = a * u[i];
+		}
+
+		return ans;
+	}
+
+	QuantArray operator/(QuantArray u, double a) {
+		QuantArray ans;
+
+		for (size_t i = 0; i < u.size(); ++i) {
+			ans[i] = u[i] / a;
+		}
+
+		return ans;
+	}
+
+	void EulerData::makeConserved(double gamma) {
 		int d = static_cast<int>(PrimitiveQuant::density);
 		int v = static_cast<int>(PrimitiveQuant::velocity);
 		int p = static_cast<int>(PrimitiveQuant::pressure);
@@ -27,7 +80,7 @@ namespace fvm {
 		mode_ = EulerDataMode::conserved;
 	}
 
-	void EulerData::convertToPrimitive(double gamma) {
+	void EulerData::makePrimitive(double gamma) {
 		int d = static_cast<size_t>(ConservedQuant::density);
 		int mo = static_cast<int>(ConservedQuant::momentum);
 		int e = static_cast<int>(ConservedQuant::energy);
@@ -43,18 +96,16 @@ namespace fvm {
 		mode_ = EulerDataMode::primitive;
 	}
 
-	double EulerData::getQuantity(size_t tripletIndex, size_t quantIndex) {
+	QuantArray EulerData::getQuantity(size_t tripletIndex) {
 		size_t i = tripletIndex;
-		size_t q = quantIndex;
 
-		return data_[i][q];
+		return data_[i];
 	}
 
-	void EulerData::setQuantity(size_t tripletIndex, size_t quantIndex, double value) {
+	void EulerData::setQuantity(size_t tripletIndex, QuantArray value) {
 		size_t i = tripletIndex;
-		size_t q = quantIndex;
 
-		data_[i][q] = value;
+		data_[i] = value;
 	}
 
 	// Constructor declaration
@@ -91,23 +142,18 @@ namespace fvm {
 		for (size_t i = 0; i < eulerData_.data().size(); ++i) {
 			// ith cell centre
 			double x = xStart_ + (i - 0.5) * dx_;
+			QuantArray cellValues;
+			cellValues[dIndex] = densityDist_(x);
+			cellValues[vIndex] = velocityDist_(x);
+			cellValues[pIndex] = pressureDist_(x);
 
-
-			eulerData_.setQuantity(i, dIndex, densityDist_(x));
-			eulerData_.setQuantity(i, vIndex, velocityDist_(x));
-			eulerData_.setQuantity(i, pIndex, pressureDist_(x));
+			eulerData_.setQuantity(i, cellValues);
 		}
 
 		// TODO: Support other boundary conditions.
 		// Apply transmissive boundary conditions.
-		eulerData_.setQuantity(0, vIndex, eulerData_.getQuantity(1, vIndex));
-		eulerData_.setQuantity(nCells_ + 1, vIndex, eulerData_.getQuantity(nCells_, vIndex));
-
-		eulerData_.setQuantity(0, dIndex, eulerData_.getQuantity(1, dIndex));
-		eulerData_.setQuantity(nCells_ + 1, dIndex, eulerData_.getQuantity(nCells_, dIndex));
-
-		eulerData_.setQuantity(0, dIndex, eulerData_.getQuantity(1, dIndex));
-		eulerData_.setQuantity(nCells_ + 1, dIndex, eulerData_.getQuantity(nCells_, dIndex));
+		eulerData_.setQuantity(0, eulerData_.getQuantity(1));
+		eulerData_.setQuantity(nCells_ + 1, eulerData_.getQuantity(nCells_));
 
 		dt_ = calcTimeStep_();
 	}
@@ -121,8 +167,9 @@ namespace fvm {
 		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
 		for (size_t i = 1; i < eulerData_.size(); ++i) {
-			double velocity = eulerData_.getQuantity(i, vIndex);
-			double pressure = eulerData_.getQuantity(i, pIndex);
+			QuantArray cellValues = eulerData_.getQuantity(i);
+			double velocity = cellValues[vIndex];
+			double pressure = cellValues[pIndex];
 
 			// v = velocity + sound speed
 			double v = std::fabs(velocity)
@@ -141,35 +188,21 @@ namespace fvm {
 		dt_ = calcTimeStep_();
 		tNow_ += dt_;
 
-		int d = static_cast<int>(ConservedQuant::density);
-		int mo = static_cast<int>(ConservedQuant::momentum);
-		int e = static_cast<int>(ConservedQuant::energy);
-
 		// Compute flux vector.
 		for (size_t i = 0; i < flux_.size(); ++i) {
-			flux_[i][d] = calcFlux_(i, ConservedQuant::density);
-			flux_[i][mo] = calcFlux_(i, ConservedQuant::momentum);
-			flux_[i][e] = calcFlux_(i, ConservedQuant::energy);
+			flux_[i] = calcFlux_(i);
 		}
 
 		for (unsigned int i = 1; i <= nCells_; ++i) {
-			double newDensity = eulerData_.getQuantity(i, d) - (dt_/dx_) * (flux_[i][d] - flux_[i - 1][d]);
-			double newMomentum = eulerData_.getQuantity(i, mo) - (dt_/dx_) * (flux_[i][mo] - flux_[i - 1][mo]);
-			double newEnergy = eulerData_.getQuantity(i, e) - (dt_/dx_) * (flux_[i][e] - flux_[i - 1][e]);
+			QuantArray cellValues = eulerData_.getQuantity(i);
+			QuantArray newValues = cellValues - (dt_/dx_) * (flux_[i] - flux_[i - 1]);
 
-			eulerData_.setQuantity(i, d, newDensity);
-			eulerData_.setQuantity(i, mo, newMomentum);
-			eulerData_.setQuantity(i, e, newEnergy);
+			eulerData_.setQuantity(i, newValues);
 		}
 
 		// Apply boundary conditions.
-		eulerData_.setQuantity(0, 0, eulerData_.getQuantity(1, 0));
-		eulerData_.setQuantity(0, 1, eulerData_.getQuantity(1, 1));
-		eulerData_.setQuantity(0, 2, eulerData_.getQuantity(1, 2));
-
-		eulerData_.setQuantity(nCells_ + 1, 0, eulerData_.getQuantity(nCells_, 0));
-		eulerData_.setQuantity(nCells_ + 1, 1, eulerData_.getQuantity(nCells_, 1));
-		eulerData_.setQuantity(nCells_ + 1, 2, eulerData_.getQuantity(nCells_, 2));
+		eulerData_.setQuantity(0, eulerData_.getQuantity(1));
+		eulerData_.setQuantity(nCells_ + 1, eulerData_.getQuantity(nCells_));
 	}
 
 	// Output simulation data in Gnuplot format.
@@ -178,16 +211,17 @@ namespace fvm {
 			double x = xStart_ + i * dx_;
 
 			// Indices of primitive quantities.
-			int d = static_cast<int>(fvm::PrimitiveQuant::density);
-			int v = static_cast<int>(fvm::PrimitiveQuant::velocity);
-			int p = static_cast<int>(fvm::PrimitiveQuant::pressure);
+			int dIndex = static_cast<int>(fvm::PrimitiveQuant::density);
+			int vIndex = static_cast<int>(fvm::PrimitiveQuant::velocity);
+			int pIndex = static_cast<int>(fvm::PrimitiveQuant::pressure);
 
 			// Values of primitive quantities.
-			double density = eulerData_.getQuantity(i, d);
-			double velocity = eulerData_.getQuantity(i, v);
-			double pressure = eulerData_.getQuantity(i, p);
+			QuantArray cellValues = eulerData_.getQuantity(i);
 
-			output << x << " " << density << " " << velocity << " " << pressure << "\n";
+			output << x << " "
+				<< cellValues[dIndex] << " "
+				<< cellValues[vIndex] << " "
+				<< cellValues[pIndex] << "\n";
 		}
 
 		// Delimit Gnuplot code block with two blank lines.
@@ -195,65 +229,65 @@ namespace fvm {
 	}
 
 	// Return the flux for the conserved quantity in cell i.
-	double Simulation::fluxExpr_(size_t i, ConservedQuant quant) {
-		double rhoV = eulerData_.getQuantity(i, static_cast<int>(ConservedQuant::momentum));
-		double rho = eulerData_.getQuantity(i, static_cast<int>(ConservedQuant::density));
-		double e = eulerData_.getQuantity(i, static_cast<int>(ConservedQuant::energy));
+	QuantArray Simulation::fluxExpr_(QuantArray u) {
+		QuantArray flux;
 
-		//FIXME
-		if (rho == 0) {
-			std::cerr << "About to divide by zero!: i = " << i << "\n";
-		}
+		int dIndex = static_cast<int>(ConservedQuant::density);
+		int moIndex = static_cast<int>(ConservedQuant::momentum);
+		int eIndex = static_cast<int>(ConservedQuant::energy);
 
+		double rho = u[dIndex];
+		double rhoV = u[moIndex];
+		double e = u[eIndex];
 		double p = (gamma_ - 1) * (e - (rhoV*rhoV)/(2*rho));
 
-		if (quant == ConservedQuant::density) {
-			return rhoV;
+		flux[dIndex] = rhoV;
+		flux[moIndex] = (rhoV*rhoV)/rho + p;
+		flux[eIndex] = (e + p) * (rhoV / rho);
 
-		} else if (quant == ConservedQuant::momentum) {
-			return (rhoV*rhoV)/rho + p;
-
-		} else if (quant == ConservedQuant::energy) {
-			return (e + p) * (rhoV / rho);
-		}
-
-		return 0;
+		return flux;
 	}
 
 	// Lax-Friedrichs flux function.
-	double Simulation::lfFlux_(size_t i, ConservedQuant quant) {
-		int q = static_cast<int>(quant);
+	QuantArray Simulation::lfFlux_(size_t i) {
+		QuantArray u = eulerData_.getQuantity(i);
+		QuantArray uNext = eulerData_.getQuantity(i + 1);
 
-		return 0.5 * (dx_/dt_) * (eulerData_.getQuantity(i, q) - eulerData_.getQuantity(i + 1, q))
-			+ 0.5 * (fluxExpr_(i + 1, quant)
-			+ fluxExpr_(i, quant));
+		return 0.5 * (dx_/dt_) * (u - uNext)
+			+ 0.5 * (fluxExpr_(uNext) + fluxExpr_(u));
 	}
 
 	// Richtmeyer flux function.
-	double Simulation::richtmyerFlux_(size_t i, ConservedQuant quant) {
-		int q = static_cast<int>(quant);
+	QuantArray Simulation::richtmyerFlux_(size_t i) {
+		QuantArray u = eulerData_.getQuantity(i);
+		QuantArray uNext = eulerData_.getQuantity(i + 1);
 
-		double halfStepUpdate =
-			0.5 * (eulerData_.getQuantity(i, q) + eulerData_.getQuantity(i + 1, q))
-			- 0.5 * (dt_/dx_)
-			* (fluxExpr_(i + 1, quant) - fluxExpr_(i, quant));
+		QuantArray halfStepUpdate =
+			0.5 * (u + uNext)
+			- 0.5 * (dt_/dx_) * (fluxExpr_(uNext) - fluxExpr_(u));
 
 		// FIXME: This doesn't make any sense.
-		return fluxExpr_(halfStepUpdate, quant);
+		return fluxExpr_(halfStepUpdate);
 	}
 
 	// Return the appropriate value for the given cell, flux scheme, and flux expression.
-	double Simulation::calcFlux_(size_t i, ConservedQuant quant) {
-		if (fluxScheme_ == FluxScheme::laxFriedrich) {
-			return lfFlux_(i, quant);
+	QuantArray Simulation::calcFlux_(size_t i) {
+		QuantArray flux;
 
-		} else if (fluxScheme_ == FluxScheme::richtmyer) {
-			return richtmyerFlux_(i, quant);
+		switch (fluxScheme_) {
+			case FluxScheme::laxFriedrich:
+				flux = lfFlux_(i);
+				break;
 
-		} else if (fluxScheme_ == FluxScheme::force) {
-			return 0.5 * (lfFlux_(i, quant) + richtmyerFlux_(i, quant));
+			case FluxScheme::richtmyer:
+				flux = richtmyerFlux_(i);
+				break;
+
+			case FluxScheme::force:
+				flux = 0.5 * (lfFlux_(i) + richtmyerFlux_(i));
+				break;
 		}
 
-		return 0;
+		return flux;
 	}
 }

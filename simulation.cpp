@@ -23,7 +23,7 @@ void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
 	sim.saveToFile(output);
 
 	// Change variables to conserved for solving.
-	sim.convertToConserved();
+	sim.makeConserved();
 	int nFrame = 0;
 	for (double t = sim.tStart(); t < sim.tEnd(); t = sim.tNow()) {
 		sim.step();
@@ -31,9 +31,9 @@ void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
 
 		if (nFrame % 3 == 0) {
 			// Change variables back to primitive for output.
-			sim.convertToPrimitive();
+			sim.makePrimitive();
 			sim.saveToFile(output);
-			sim.convertToConserved();
+			sim.makeConserved();
 		}
 	}
 }
@@ -43,8 +43,8 @@ int main(void) {
 			&test1Pressure, fvm::FluxScheme::force);
 	//fvm::Simulation test2(800, 0, 1, 0, 0.15, 0.8, 1.4, &test2Density, &test2Velocity,
 	//		&test2Pressure, fvm::FluxScheme::force);
-	fvm::Simulation test3(800, 0, 1, 0, 0.012, 0.8, 1.4, &test3Density, &test3Velocity,
-			&test3Pressure, fvm::FluxScheme::force);
+	//fvm::Simulation test3(800, 0, 1, 0, 0.012, 0.8, 1.4, &test3Density, &test3Velocity,
+	//		&test3Pressure, fvm::FluxScheme::force);
 	//fvm::Simulation test4(800, 0, 1, 0, 0.035, 0.8, 1.4, &test4Density, &test4Velocity,
 	//		&test4Pressure, fvm::FluxScheme::force);
 	//fvm::Simulation test5(800, 0, 1, 0, 0.035, 0.8, 1.4, &test5Density, &test5Velocity,
@@ -52,7 +52,7 @@ int main(void) {
 
 	std::ofstream output1("test1.dat");
 	//std::ofstream output2("test2.dat");
-	std::ofstream output3("test3.dat");
+	//std::ofstream output3("test3.dat");
 	//std::ofstream output4("test4.dat");
 	//std::ofstream output5("test5.dat");
 	if (!output1) {
@@ -61,7 +61,7 @@ int main(void) {
 	}
 
 	runSimulation(test1, output1);
-	runSimulation(test3, output3);
+	//runSimulation(test3, output3);
 	//test1.saveToFile(output1);
 
 	//// Change variables to conserved for solving.
