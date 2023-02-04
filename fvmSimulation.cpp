@@ -274,7 +274,7 @@ namespace fvm {
 		QuantArray flux;
 
 		switch (fluxScheme_) {
-			case FluxScheme::laxFriedrich:
+			case FluxScheme::laxFriedrichs:
 				flux = lfFlux_(i);
 				break;
 

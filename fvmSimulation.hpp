@@ -40,7 +40,7 @@ namespace fvm {
 
 	// The type of flux scheme
 	enum class FluxScheme {
-		laxFriedrich,
+		laxFriedrichs,
 		richtmyer,
 		force,
 	};
