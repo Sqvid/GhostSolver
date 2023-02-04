@@ -9,11 +9,13 @@ OPTFLAG = -O2
 
 BIN = simulation
 
+OBJ = fvmSimulation.o fvmData.o toroTests.o simulation.o
+
+$(BIN): $(OBJ)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $^
-
-$(BIN): *.o
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 debug: CXXFLAGS += $(DBGFLAGS)
 debug : $(BIN)

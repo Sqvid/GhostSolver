@@ -7,108 +7,16 @@
 using std::size_t;
 
 namespace fvm {
-	// Operator overloads for QuantArray.
-	QuantArray operator+(QuantArray a, QuantArray b) {
-		QuantArray ans;
+	// Public member function definitions:
 
-		for (size_t i = 0; i < a.size(); ++i) {
-			ans[i] = a[i] + b[i];
-		}
-
-		return ans;
-	}
-
-	QuantArray operator-(QuantArray a, QuantArray b) {
-		QuantArray ans;
-
-		for (size_t i = 0; i < a.size(); ++i) {
-			ans[i] = a[i] - b[i];
-		}
-
-		return ans;
-	}
-
-	QuantArray operator*(double a, QuantArray u) {
-		QuantArray ans;
-
-		for (size_t i = 0; i < u.size(); ++i) {
-			ans[i] = a * u[i];
-		}
-
-		return ans;
-	}
-
-	QuantArray operator*(QuantArray u, double a) {
-		QuantArray ans;
-
-		for (size_t i = 0; i < u.size(); ++i) {
-			ans[i] = a * u[i];
-		}
-
-		return ans;
-	}
-
-	QuantArray operator/(QuantArray u, double a) {
-		QuantArray ans;
-
-		for (size_t i = 0; i < u.size(); ++i) {
-			ans[i] = u[i] / a;
-		}
-
-		return ans;
-	}
-
-	void EulerData::makeConserved() {
-		// Already in conserved form. Return early.
-		if (mode_ == EulerDataMode::conserved) {
-			return;
-		}
-
-		int dIndex = static_cast<int>(PrimitiveQuant::density);
-		int vIndex = static_cast<int>(PrimitiveQuant::velocity);
-		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
-
-		for (size_t i = 0; i < data_.size(); ++i) {
-			// Convert velocity to momentum.
-			data_[i][vIndex] *= data_[i][dIndex];
-
-			// Convert pressure to energy.
-			data_[i][pIndex] = (data_[i][pIndex] / (gamma_ - 1))
-				+ 0.5 * ((data_[i][vIndex] * data_[i][vIndex]) / data_[i][dIndex]);
-		}
-
-		mode_ = EulerDataMode::conserved;
-	}
-
-	void EulerData::makePrimitive() {
-		// Already in primitive form. Return early.
-		if (mode_ == EulerDataMode::primitive) {
-			return;
-		}
-
-		int dIndex = static_cast<size_t>(ConservedQuant::density);
-		int moIndex = static_cast<int>(ConservedQuant::momentum);
-		int eIndex = static_cast<int>(ConservedQuant::energy);
-
-		for (size_t i = 0; i < data_.size(); ++i) {
-			// Convert energy to pressure.
-			data_[i][eIndex] = (gamma_ - 1) * (data_[i][eIndex]
-					- 0.5 * ((data_[i][moIndex] * data_[i][moIndex]) / data_[i][dIndex]));
-
-			// Convert momentum to velocity.
-			data_[i][moIndex] /= data_[i][dIndex];
-		}
-
-		mode_ = EulerDataMode::primitive;
-	}
-
-	// Constructor declaration
+	// Constructor:
 	Simulation::Simulation(unsigned int nCells, double xStart, double xEnd,
 			double tStart, double tEnd, double cfl, double gamma,
 			std::function<double (double)> densityDist,
 			std::function<double (double)> velocityDist,
 			std::function<double (double)> pressureDist,
-			FluxScheme fluxScheme)
+			FluxScheme fluxScheme,
+			SlopeLimiter slopeLimiter)
 			// Initialiser list
 			: eulerData_(gamma) {
 
@@ -151,33 +59,6 @@ namespace fvm {
 		// Apply transmissive boundary conditions.
 		eulerData_.setQuantity(0, eulerData_.getQuantity(1));
 		eulerData_.setQuantity(nCells_ + 1, eulerData_.getQuantity(nCells_));
-	}
-
-	// Heuristic to find a timestep to keep cell updates stable.
-	double Simulation::calcTimeStep_() {
-		double vMax = 0;
-
-		// Indices for conserved quantities.
-		int dIndex = static_cast<int>(ConservedQuant::density);
-		int moIndex = static_cast<int>(ConservedQuant::momentum);
-		int eIndex = static_cast<int>(ConservedQuant::energy);
-
-		for (size_t i = 1; i < eulerData_.size(); ++i) {
-			QuantArray cellValues = eulerData_.getQuantity(i);
-			double rho = cellValues[dIndex];
-			double rhoV = cellValues[moIndex];
-			double e = cellValues[eIndex];
-
-			// v = velocity + sound speed
-			double v = std::fabs(rhoV / rho)
-				+ std::sqrt((gamma_*(gamma_ - 1)*(e - 0.5*((rhoV*rhoV) / rho))) / rho);
-
-			if (v > vMax) {
-				vMax = v;
-			}
-		}
-
-		return cfl_ * (dx_ / vMax);
 	}
 
 	// Evolve the simulation one timestep.
@@ -226,6 +107,37 @@ namespace fvm {
 				<< cellValues[vIndex] << " "
 				<< cellValues[pIndex] << "\n";
 		}
+	}
+
+	// Private member function definitions:
+
+	// Heuristic to find a timestep to keep cell updates stable.
+	// Timestep is computed such that it is stable for the fastest
+	// information wave.
+	double Simulation::calcTimeStep_() {
+		double vMax = 0;
+
+		// Indices for conserved quantities.
+		int dIndex = static_cast<int>(ConservedQuant::density);
+		int moIndex = static_cast<int>(ConservedQuant::momentum);
+		int eIndex = static_cast<int>(ConservedQuant::energy);
+
+		for (size_t i = 1; i < eulerData_.size(); ++i) {
+			QuantArray cellValues = eulerData_.getQuantity(i);
+			double rho = cellValues[dIndex];
+			double rhoV = cellValues[moIndex];
+			double e = cellValues[eIndex];
+
+			// v = velocity + sound speed
+			double v = std::fabs(rhoV / rho)
+				+ std::sqrt((gamma_*(gamma_ - 1)*(e - 0.5*((rhoV*rhoV) / rho))) / rho);
+
+			if (v > vMax) {
+				vMax = v;
+			}
+		}
+
+		return cfl_ * (dx_ / vMax);
 	}
 
 	// Return the flux for the conserved quantity in cell i.
