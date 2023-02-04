@@ -2,7 +2,7 @@
 #include <functional>
 #include <iostream>
 
-#include "FvmSimulation.hpp"
+#include "fvmSimulation.hpp"
 
 using std::size_t;
 

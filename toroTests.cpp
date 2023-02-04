@@ -1,4 +1,4 @@
-#include "ToroTests.hpp"
+#include "toroTests.hpp"
 
 // Initial distribution of primitive variables for Toro's tests.
 //

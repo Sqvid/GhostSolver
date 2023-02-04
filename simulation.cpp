@@ -1,8 +1,8 @@
 #include <fstream>
 #include <iostream>
 
-#include "FvmSimulation.hpp"
-#include "ToroTests.hpp"
+#include "fvmSimulation.hpp"
+#include "toroTests.hpp"
 
 void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
 	sim.saveToFile(output);
