@@ -54,13 +54,10 @@ namespace fvm {
 
 			// EulerData accessors
 			// Getters
+			QuantArray& operator[](size_t i) { return data_[i]; }
 			size_t size() { return data_.size(); }
 			CellVector& data() { return data_; }
 			EulerDataMode mode() { return mode_; }
-			QuantArray& getQuantity(size_t i) { return data_[i]; }
-			// TODO: Replace all instances of getQuantity with this
-			// overload.
-			QuantArray& operator[](size_t i) { return data_[i]; }
 
 			// Setters
 			void setQuantity(size_t i, QuantArray newValues) { data_[i] = newValues; }

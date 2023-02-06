@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "simulation.hpp"
+#include "slopeLimiter.hpp"
 #include "toroTests.hpp"
 
 void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
@@ -27,16 +28,14 @@ void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
 int main(void) {
 	fvm::Simulation test1(200, 0, 1, 0, 0.25, 0.8, 1.4, &test1Density, &test1Velocity,
 			&test1Pressure, fvm::FluxScheme::force, fvm::SlopeLimiterType::minbee);
-	fvm::Simulation test2(200, 0, 1, 0, 0.25, 0.8, 1.4, &test1Density, &test1Velocity,
-			&test1Pressure, fvm::FluxScheme::force, fvm::SlopeLimiterType::none);
-	//fvm::Simulation test2(200, 0, 1, 0, 0.15, 0.8, 1.4, &test2Density, &test2Velocity,
-	//		&test2Pressure, fvm::FluxScheme::force);
+	fvm::Simulation test2(800, 0, 1, 0, 0.15, 0.8, 1.4, &test2Density, &test2Velocity,
+			&test2Pressure, fvm::FluxScheme::force, fvm::SlopeLimiterType::minbee);
 	fvm::Simulation test3(200, 0, 1, 0, 0.012, 0.8, 1.4, &test3Density, &test3Velocity,
-			&test3Pressure, fvm::FluxScheme::force);
-	fvm::Simulation test4(200, 0, 1, 0, 0.035, 0.8, 1.4, &test4Density, &test4Velocity,
-			&test4Pressure, fvm::FluxScheme::force);
-	fvm::Simulation test5(200, 0, 1, 0, 0.035, 0.8, 1.4, &test5Density, &test5Velocity,
-			&test5Pressure, fvm::FluxScheme::force);
+			&test3Pressure, fvm::FluxScheme::force, fvm::SlopeLimiterType::minbee);
+	fvm::Simulation test4(800, 0, 1, 0, 0.035, 0.8, 1.4, &test4Density, &test4Velocity,
+			&test4Pressure, fvm::FluxScheme::force, fvm::SlopeLimiterType::minbee);
+	fvm::Simulation test5(800, 0, 1, 0, 0.035, 0.8, 1.4, &test5Density, &test5Velocity,
+			&test5Pressure, fvm::FluxScheme::force, fvm::SlopeLimiterType::minbee);
 
 	std::ofstream output1("test1.dat");
 	std::ofstream output2("test2.dat");

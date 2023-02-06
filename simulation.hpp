@@ -47,8 +47,8 @@ namespace fvm {
 			double gamma() { return gamma_; }
 			EulerData data() { return eulerData_; }
 
-			// Wrapper around EulerData qunatity getter.
-			QuantArray getQuantity(size_t i) { return eulerData_.getQuantity(i); }
+			// Wrapper around EulerData quantity getter.
+			//QuantArray getQuantity(size_t i) { return eulerData_[i]; }
 
 			// Public member functions
 			void step();

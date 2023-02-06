@@ -59,8 +59,8 @@ namespace fvm {
 		}
 
 		// Apply transmissive boundary conditions.
-		eulerData_.setQuantity(0, eulerData_.getQuantity(1));
-		eulerData_.setQuantity(nCells_ + 1, eulerData_.getQuantity(nCells_));
+		eulerData_.setQuantity(0, eulerData_[1]);
+		eulerData_.setQuantity(nCells_ + 1, eulerData_[nCells_]);
 	}
 
 	// Evolve the simulation one timestep.
@@ -107,15 +107,15 @@ namespace fvm {
 		}
 
 		for (unsigned int i = 1; i <= nCells_; ++i) {
-			QuantArray cellValues = eulerData_.getQuantity(i);
+			QuantArray cellValues = eulerData_[i];
 			QuantArray newValues = cellValues - (dt_/dx_) * (flux_[i] - flux_[i - 1]);
 
 			eulerData_.setQuantity(i, newValues);
 		}
 
 		// Apply boundary conditions.
-		eulerData_.setQuantity(0, eulerData_.getQuantity(1));
-		eulerData_.setQuantity(nCells_ + 1, eulerData_.getQuantity(nCells_));
+		eulerData_.setQuantity(0, eulerData_[1]);
+		eulerData_.setQuantity(nCells_ + 1, eulerData_[nCells_]);
 	}
 
 	// Output simulation data in Gnuplot format.
@@ -132,7 +132,7 @@ namespace fvm {
 			int pIndex = static_cast<int>(fvm::PrimitiveQuant::pressure);
 
 			// Values of primitive quantities.
-			QuantArray cellValues = eulerData_.getQuantity(i);
+			QuantArray cellValues = eulerData_[i];
 
 			output << x << " "
 				<< cellValues[dIndex] << " "
@@ -155,7 +155,7 @@ namespace fvm {
 		int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		for (size_t i = 1; i < eulerData_.size(); ++i) {
-			QuantArray cellValues = eulerData_.getQuantity(i);
+			QuantArray cellValues = eulerData_[i];
 			double rho = cellValues[dIndex];
 			double rhoV = cellValues[moIndex];
 			double e = cellValues[eIndex];
