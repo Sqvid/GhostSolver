@@ -10,4 +10,4 @@ compile_commands.json
 .cache/
 
 # Executable
-simulation
+main
