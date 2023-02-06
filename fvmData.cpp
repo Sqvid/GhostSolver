@@ -52,6 +52,23 @@ namespace fvm {
 		return ans;
 	}
 
+	// Put the data in the correct mode.
+	void EulerData::setMode(EulerDataMode want) {
+		// The mode is already correctly set; return early.
+		if (mode_ == want) {
+			return;
+		}
+
+		switch (want) {
+			case EulerDataMode::primitive:
+				makePrimitive();
+				break;
+			case EulerDataMode::conserved:
+				makeConserved();
+				break;
+		}
+	}
+
 	void EulerData::makeConserved() {
 		// Already in conserved form. Return early.
 		if (mode_ == EulerDataMode::conserved) {

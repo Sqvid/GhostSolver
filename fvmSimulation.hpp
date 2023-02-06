@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include "fvmData.hpp"
+#include "slopeLimiter.hpp"
 
 using std::size_t;
 
@@ -16,12 +17,6 @@ namespace fvm {
 		laxFriedrichs,
 		richtmyer,
 		force,
-	};
-
-	// flux scheme.
-	enum class SlopeLimiter {
-		noLimiter = -1,
-		minbee
 	};
 
 	// The simulation contains the parameters of the simulation as well as the
@@ -36,7 +31,7 @@ namespace fvm {
 					std::function<double (double)> velocityDist,
 					std::function<double (double)> pressureDist,
 					FluxScheme fluxScheme,
-					SlopeLimiter slopeLimiter = SlopeLimiter::noLimiter);
+					SlopeLimiterType slType = SlopeLimiterType::none);
 
 			// Accessors
 			// Getters
@@ -72,17 +67,21 @@ namespace fvm {
 			double dt_;
 			double gamma_;
 			FluxScheme fluxScheme_;
+			SlopeLimiterType slType_;
+			SlopeLimiter sLimiter_;
 			std::function<double (double)> densityDist_;
 			std::function<double (double)> velocityDist_;
 			std::function<double (double)> pressureDist_;
 			EulerData eulerData_;
-			TripletVector flux_;
+			CellVector flux_;
+			CellVector slInterfaces_;
 
 			// Private member functions
 			double calcTimeStep_();
-			QuantArray lfFlux_(size_t i);
-			QuantArray richtmyerFlux_(size_t i);
-			QuantArray calcFlux_(size_t i);
+			QuantArray lfFlux_(const QuantArray& u, const QuantArray& uNext);
+			QuantArray richtmyerFlux_(const QuantArray& u, const QuantArray& uNext);
+			QuantArray forceFlux_(const QuantArray& u, const QuantArray& uNext);
+			QuantArray calcFlux_(const QuantArray& u, const QuantArray& uNext);
 			QuantArray fluxExpr_(QuantArray u);
 			// Wrappers around EulerData conversion functions.
 			void makeConserved_() { eulerData_.makeConserved(); }

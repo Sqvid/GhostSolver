@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstddef>
 #include <functional>
 #include <iostream>
 
@@ -16,11 +17,11 @@ namespace fvm {
 			std::function<double (double)> velocityDist,
 			std::function<double (double)> pressureDist,
 			FluxScheme fluxScheme,
-			SlopeLimiter slopeLimiter)
+			SlopeLimiterType slType)
 			// Initialiser list
-			: eulerData_(gamma) {
+			: sLimiter_(slType), eulerData_(gamma) {
 
-		// TODO: Add checks to enforce sane values. E.g. Positive nCells.
+		// FIXME: Add checks to enforce sane values. E.g. Positive nCells.
 		nCells_ = nCells;
 		xStart_ = xStart;
 		xEnd_ = xEnd;
@@ -34,6 +35,8 @@ namespace fvm {
 		eulerData_.data().resize(nCells_ + 2);
 		flux_.resize(nCells_ + 1);
 		fluxScheme_ = fluxScheme;
+		slInterfaces_.resize(nCells_ * 2);
+		slType_ = slType;
 		densityDist_ = densityDist;
 		velocityDist_ = velocityDist;
 		pressureDist_ = pressureDist;
@@ -55,7 +58,6 @@ namespace fvm {
 			eulerData_.setQuantity(i, cellValues);
 		}
 
-		// TODO: Support other boundary conditions.
 		// Apply transmissive boundary conditions.
 		eulerData_.setQuantity(0, eulerData_.getQuantity(1));
 		eulerData_.setQuantity(nCells_ + 1, eulerData_.getQuantity(nCells_));
@@ -69,9 +71,39 @@ namespace fvm {
 		dt_ = calcTimeStep_();
 		tNow_ += dt_;
 
-		// Compute flux vector.
-		for (size_t i = 0; i < flux_.size(); ++i) {
-			flux_[i] = calcFlux_(i);
+		// If slope limiting has been requested.
+		if (slType_ != SlopeLimiterType::none) {
+			// FIXME: Calculate these from reconstructed boundary
+			// cells.
+			flux_[0] = calcFlux_(eulerData_[0], eulerData_[1]);
+			flux_[nCells_] = calcFlux_(eulerData_[nCells_], eulerData_[nCells_ + 1]);
+
+			sLimiter_.linearReconstruct(eulerData_, slInterfaces_);
+
+			// Half-timestep evolution.
+			for (std::size_t i = 0; i < nCells_; ++i) {
+				QuantArray& uLeft = slInterfaces_[2*i];
+				QuantArray& uRight = slInterfaces_[2*i + 1];
+
+				QuantArray cellChange = 0.5 * (dt_/dx_)
+					* (fluxExpr_(uRight) - fluxExpr_(uLeft));
+
+				uLeft = uLeft - cellChange;
+				uRight = uRight - cellChange;
+			}
+
+			for (size_t i= 0; i < nCells_ - 1; ++i) {
+				QuantArray uRight = slInterfaces_[2*i + 1];
+				QuantArray uNextLeft = slInterfaces_[2*i + 2];
+
+				flux_[i + 1] = calcFlux_(uRight, uNextLeft);
+			}
+
+		} else {
+			// Compute flux vector.
+			for (size_t i = 0; i < flux_.size(); ++i) {
+				flux_[i] = calcFlux_(eulerData_[i], eulerData_[i + 1]);
+			}
 		}
 
 		for (unsigned int i = 1; i <= nCells_; ++i) {
@@ -140,7 +172,7 @@ namespace fvm {
 		return cfl_ * (dx_ / vMax);
 	}
 
-	// Return the flux for the conserved quantity in cell i.
+	// Return the fluxes for the conserved quantities.
 	QuantArray Simulation::fluxExpr_(QuantArray u) {
 		QuantArray flux;
 
@@ -161,19 +193,13 @@ namespace fvm {
 	}
 
 	// Lax-Friedrichs flux function.
-	QuantArray Simulation::lfFlux_(size_t i) {
-		QuantArray u = eulerData_.getQuantity(i);
-		QuantArray uNext = eulerData_.getQuantity(i + 1);
-
+	QuantArray Simulation::lfFlux_(const QuantArray& u, const QuantArray& uNext) {
 		return 0.5 * (dx_/dt_) * (u - uNext)
 			+ 0.5 * (fluxExpr_(uNext) + fluxExpr_(u));
 	}
 
 	// Richtmeyer flux function.
-	QuantArray Simulation::richtmyerFlux_(size_t i) {
-		QuantArray u = eulerData_.getQuantity(i);
-		QuantArray uNext = eulerData_.getQuantity(i + 1);
-
+	QuantArray Simulation::richtmyerFlux_(const QuantArray& u, const QuantArray& uNext) {
 		QuantArray halfStepUpdate =
 			0.5 * (u + uNext)
 			- 0.5 * (dt_/dx_) * (fluxExpr_(uNext) - fluxExpr_(u));
@@ -181,21 +207,25 @@ namespace fvm {
 		return fluxExpr_(halfStepUpdate);
 	}
 
+	QuantArray Simulation::forceFlux_(const QuantArray& u, const QuantArray& uNext) {
+		return 0.5 * (lfFlux_(u, uNext) + richtmyerFlux_(u, uNext));
+	}
+
 	// Return the appropriate value for the given cell, flux scheme, and flux expression.
-	QuantArray Simulation::calcFlux_(size_t i) {
+	QuantArray Simulation::calcFlux_(const QuantArray& u, const QuantArray& uNext) {
 		QuantArray flux;
 
 		switch (fluxScheme_) {
 			case FluxScheme::laxFriedrichs:
-				flux = lfFlux_(i);
+				flux = lfFlux_(u, uNext);
 				break;
 
 			case FluxScheme::richtmyer:
-				flux = richtmyerFlux_(i);
+				flux = richtmyerFlux_(u, uNext);
 				break;
 
 			case FluxScheme::force:
-				flux = 0.5 * (lfFlux_(i) + richtmyerFlux_(i));
+				flux = forceFlux_(u, uNext);
 				break;
 		}
 

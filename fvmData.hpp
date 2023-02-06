@@ -2,20 +2,22 @@
 #define GHOSTSOLVER_FVMDATA_HPP
 
 #include <array>
+#include <cstddef>
 #include <vector>
 
 using std::size_t;
 
 namespace fvm {
-	// A vector of arrays of length three (triplet).
+	// A QuantArray is the array of measured quantities within a cell.
 	typedef std::array<double, 3> QuantArray;
-	typedef std::vector<QuantArray> TripletVector;
+	// The cell vector stores the QuantArrays for every cell.
+	typedef std::vector<QuantArray> CellVector;
 
 	// Operator overloads for QuantArray.
 	// Vector addition and subtraction.
 	QuantArray operator+(QuantArray a, QuantArray b);
 	QuantArray operator-(QuantArray a, QuantArray b);
-	// vector multiplication/division by scalar. 
+	// vector multiplication/division by scalar.
 	QuantArray operator*(double a, QuantArray u);
 	QuantArray operator*(QuantArray u, double a);
 	QuantArray operator/(QuantArray u, double a);
@@ -46,23 +48,29 @@ namespace fvm {
 				// Initialiser list
 				: gamma_(gamma), mode_(mode) {};
 
+			// TODO: Make these private methods. Only expose setter.
 			void makeConserved();
 			void makePrimitive();
 
 			// EulerData accessors
 			// Getters
 			size_t size() { return data_.size(); }
-			TripletVector& data() { return data_; }
+			CellVector& data() { return data_; }
 			EulerDataMode mode() { return mode_; }
-			QuantArray getQuantity(size_t i) { return data_[i]; }
+			QuantArray& getQuantity(size_t i) { return data_[i]; }
+			// TODO: Replace all instances of getQuantity with this
+			// overload.
+			QuantArray& operator[](size_t i) { return data_[i]; }
 
 			// Setters
 			void setQuantity(size_t i, QuantArray newValues) { data_[i] = newValues; }
+			// TODO: All mode changes should go through this setter.
+			void setMode(EulerDataMode want);
 
 		private:
 			// Private member data
 			double gamma_;
-			TripletVector data_;
+			CellVector data_;
 			EulerDataMode mode_;
 	};
 }
