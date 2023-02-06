@@ -1,10 +1,10 @@
-#include "slopeLimiter.hpp"
-#include "fvmData.hpp"
 #include <algorithm>
 #include <cmath>
 #include <functional>
 #include <iostream>
-#include "fvmData.hpp"
+
+#include "eulerData.hpp"
+#include "slopeLimiter.hpp"
 
 namespace fvm {
 	const double slopeTolerence = 0.0001;

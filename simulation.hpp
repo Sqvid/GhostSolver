@@ -6,7 +6,7 @@
 #include <vector>
 #include <fstream>
 
-#include "fvmData.hpp"
+#include "eulerData.hpp"
 #include "slopeLimiter.hpp"
 
 using std::size_t;

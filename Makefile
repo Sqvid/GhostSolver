@@ -6,9 +6,9 @@ CXXFLAGS = -std=c++14 -Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor \
 LDFLAGS = -lm
 OPTFLAG = -O2
 
-BIN = simulation
+BIN = main
 
-OBJ = fvmSimulation.o fvmData.o slopeLimiter.o toroTests.o simulation.o
+OBJ = simulation.o eulerData.o slopeLimiter.o toroTests.o main.o
 
 $(BIN): $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
