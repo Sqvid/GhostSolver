@@ -74,7 +74,9 @@ namespace fvm {
 			std::function<double (double)> pressureDist_;
 			EulerData eulerData_;
 			CellVector flux_;
-			CellVector slInterfaces_;
+			// Left and right reconstructed interface values.
+			CellVector lSlopeIfaces_;
+			CellVector rSlopeIfaces_;
 
 			// Private member functions
 			double calcTimeStep_();

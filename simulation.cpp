@@ -44,7 +44,8 @@ namespace fvm {
 		eulerData_.data().resize(nCells_ + 2);
 		flux_.resize(nCells_ + 1);
 		fluxScheme_ = fluxScheme;
-		slInterfaces_.resize(nCells_ * 2);
+		lSlopeIfaces_.resize(nCells_);
+		rSlopeIfaces_.resize(nCells_);
 		slType_ = slType;
 		densityDist_ = densityDist;
 		velocityDist_ = velocityDist;
@@ -87,12 +88,12 @@ namespace fvm {
 			flux_[0] = calcFlux_(eulerData_[0], eulerData_[1]);
 			flux_[nCells_] = calcFlux_(eulerData_[nCells_], eulerData_[nCells_ + 1]);
 
-			sLimiter_.linearReconstruct(eulerData_, slInterfaces_);
+			sLimiter_.linearReconst(eulerData_, lSlopeIfaces_, rSlopeIfaces_);
 
 			// Half-timestep evolution.
 			for (std::size_t i = 0; i < nCells_; ++i) {
-				QuantArray& uLeft = slInterfaces_[2*i];
-				QuantArray& uRight = slInterfaces_[2*i + 1];
+				QuantArray& uLeft = lSlopeIfaces_[i];
+				QuantArray& uRight = rSlopeIfaces_[i];
 
 				QuantArray cellChange = 0.5 * (dt_/dx_)
 					* (fluxExpr_(uRight) - fluxExpr_(uLeft));
@@ -102,8 +103,8 @@ namespace fvm {
 			}
 
 			for (size_t i= 0; i < nCells_ - 1; ++i) {
-				QuantArray uRight = slInterfaces_[2*i + 1];
-				QuantArray uNextLeft = slInterfaces_[2*i + 2];
+				QuantArray uRight = rSlopeIfaces_[i];
+				QuantArray uNextLeft = lSlopeIfaces_[i + 1];
 
 				flux_[i + 1] = calcFlux_(uRight, uNextLeft);
 			}

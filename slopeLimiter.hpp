@@ -19,7 +19,8 @@ namespace fvm {
 			// Constructor:
 			SlopeLimiter(SlopeLimiterType slType = SlopeLimiterType::none);
 
-			void linearReconstruct(EulerData& eulerData, CellVector& interfaces);
+			void linearReconst(EulerData& eulerData,
+					CellVector& lIfaces, CellVector& rIfaces);
 
 		private:
 			// Private member data:

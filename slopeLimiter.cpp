@@ -46,7 +46,7 @@ namespace fvm {
 		return r;
 	}
 
-	void SlopeLimiter::linearReconstruct(EulerData& eulerData, CellVector& interfaces) {
+	void SlopeLimiter::linearReconst(EulerData& eulerData, CellVector& lIfaces, CellVector& rIfaces) {
 		// Alias the numerical data.
 		eulerData.setMode(EulerDataMode::conserved);
 		CellVector& u = eulerData.data();
@@ -55,7 +55,7 @@ namespace fvm {
 		// on.
 		int eIndex = static_cast<int>(ConservedQuant::energy);
 
-		// Calculate right side interface values.
+		// Calculate reconstructed interface values.
 		for (size_t i = 1; i < u.size() - 1; i++) {
 			QuantArray deltaLeft = u[i] - u[i - 1];
 			QuantArray deltaRight = u[i + 1] - u[i];
@@ -66,23 +66,21 @@ namespace fvm {
 
 			// This is probably a terrible hack to avoid dividing by
 			// zero.
-			if (std::fabs(deltaRight[eIndex]) < slopeTolerence) {
-				deltaRight[eIndex] = deltaRight[eIndex] >= 0 ? slopeTolerence  : -slopeTolerence;
-			}
-
 			if (std::fabs(deltaLeft[eIndex]) < slopeTolerence) {
-				deltaLeft[eIndex] = deltaLeft[eIndex] >= 0 ? slopeTolerence  : -slopeTolerence;
+				deltaLeft[eIndex] = 0;
 			}
 
-			r = deltaLeft[eIndex] / deltaRight[eIndex];
+			if (std::fabs(deltaRight[eIndex]) < slopeTolerence) {
+				r = 10;
+			} else {
+				r = deltaLeft[eIndex] / deltaRight[eIndex];
+			}
 
 			QuantArray uLeft = u[i] - 0.5 * delta * limit_(r);
 			QuantArray uRight = u[i] + 0.5 * delta * limit_(r);
 
-			// Thes indices have been chosen to correctly map these
-			// values into the bigger array.
-			interfaces[2*i - 2] = uLeft;
-			interfaces[2*i - 1] = uRight;
+			lIfaces[i - 1] = uLeft;
+			rIfaces[i - 1] = uRight;
 		}
 	}
 }
