@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <functional>
 #include <iostream>
+#include <stdexcept>
 
 #include "simulation.hpp"
 
@@ -21,7 +22,15 @@ namespace fvm {
 			// Initialiser list
 			: sLimiter_(slType), eulerData_(gamma) {
 
-		// FIXME: Add checks to enforce sane values. E.g. Positive nCells.
+		// Check for sane input values.
+		if (nCells <= 0) {
+			throw std::invalid_argument("nCells must be > 0.");
+		} else if (tStart < 0) {
+			throw std::invalid_argument("tStart must be >= 0");
+		} else if (tEnd <= tStart) {
+			throw std::invalid_argument("tEnd must be > tStart");
+		}
+
 		nCells_ = nCells;
 		xStart_ = xStart;
 		xEnd_ = xEnd;

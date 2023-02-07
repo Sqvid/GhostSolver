@@ -2,6 +2,7 @@
 #include <cmath>
 #include <functional>
 #include <iostream>
+#include <stdexcept>
 
 #include "eulerData.hpp"
 #include "slopeLimiter.hpp"
@@ -11,8 +12,6 @@ namespace fvm {
 
 	SlopeLimiter::SlopeLimiter(SlopeLimiterType slType) {
 		slType_ = slType;
-
-		// FIXME: Handle exception for bad values of slope weight.
 
 		switch (slType) {
 			case SlopeLimiterType::minbee:
@@ -48,8 +47,6 @@ namespace fvm {
 	}
 
 	void SlopeLimiter::linearReconstruct(EulerData& eulerData, CellVector& interfaces) {
-		// FIXME: Exception for noLimiter.
-
 		// Alias the numerical data.
 		eulerData.setMode(EulerDataMode::conserved);
 		CellVector& u = eulerData.data();
