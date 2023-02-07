@@ -83,10 +83,8 @@ namespace fvm {
 			QuantArray forceFlux_(const QuantArray& u, const QuantArray& uNext);
 			QuantArray calcFlux_(const QuantArray& u, const QuantArray& uNext);
 			QuantArray fluxExpr_(QuantArray u);
-			// Wrappers around EulerData conversion functions.
-			void makeConserved_() { eulerData_.makeConserved(); }
-			void makePrimitive_() { eulerData_.makePrimitive(); }
-
+			// Wrappers around EulerData mode conversion function.
+			void setMode(EulerDataMode want) { eulerData_.setMode(want); }
 	};
 }
 

@@ -48,10 +48,6 @@ namespace fvm {
 				// Initialiser list
 				: gamma_(gamma), mode_(mode) {};
 
-			// TODO: Make these private methods. Only expose setter.
-			void makeConserved();
-			void makePrimitive();
-
 			// EulerData accessors
 			// Getters
 			QuantArray& operator[](size_t i) { return data_[i]; }
@@ -61,7 +57,6 @@ namespace fvm {
 
 			// Setters
 			void setQuantity(size_t i, QuantArray newValues) { data_[i] = newValues; }
-			// TODO: All mode changes should go through this setter.
 			void setMode(EulerDataMode want);
 
 		private:
@@ -69,6 +64,8 @@ namespace fvm {
 			double gamma_;
 			CellVector data_;
 			EulerDataMode mode_;
+			void makeConserved_();
+			void makePrimitive_();
 	};
 }
 

@@ -66,7 +66,7 @@ namespace fvm {
 	// Evolve the simulation one timestep.
 	void Simulation::step() {
 		// All calculations must be done in conserved mode.
-		eulerData_.makeConserved();
+		eulerData_.setMode(EulerDataMode::conserved);
 
 		dt_ = calcTimeStep_();
 		tNow_ += dt_;
@@ -121,7 +121,7 @@ namespace fvm {
 	// Output simulation data in Gnuplot format.
 	void Simulation::saveToFile(std::ofstream& output) {
 		// Output data in primitive form.
-		eulerData_.makePrimitive();
+		eulerData_.setMode(EulerDataMode::primitive);
 
 		for (size_t i = 0; i < nCells_; ++i) {
 			double x = xStart_ + i * dx_;

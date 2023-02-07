@@ -61,20 +61,15 @@ namespace fvm {
 
 		switch (want) {
 			case EulerDataMode::primitive:
-				makePrimitive();
+				makePrimitive_();
 				break;
 			case EulerDataMode::conserved:
-				makeConserved();
+				makeConserved_();
 				break;
 		}
 	}
 
-	void EulerData::makeConserved() {
-		// Already in conserved form. Return early.
-		if (mode_ == EulerDataMode::conserved) {
-			return;
-		}
-
+	void EulerData::makeConserved_() {
 		int dIndex = static_cast<int>(PrimitiveQuant::density);
 		int vIndex = static_cast<int>(PrimitiveQuant::velocity);
 		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
@@ -91,12 +86,7 @@ namespace fvm {
 		mode_ = EulerDataMode::conserved;
 	}
 
-	void EulerData::makePrimitive() {
-		// Already in primitive form. Return early.
-		if (mode_ == EulerDataMode::primitive) {
-			return;
-		}
-
+	void EulerData::makePrimitive_() {
 		int dIndex = static_cast<size_t>(ConservedQuant::density);
 		int moIndex = static_cast<int>(ConservedQuant::momentum);
 		int eIndex = static_cast<int>(ConservedQuant::energy);

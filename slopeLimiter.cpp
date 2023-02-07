@@ -51,7 +51,7 @@ namespace fvm {
 		// FIXME: Exception for noLimiter.
 
 		// Alias the numerical data.
-		eulerData.makeConserved();
+		eulerData.setMode(EulerDataMode::conserved);
 		CellVector& u = eulerData.data();
 
 		// Index for energy. This is the quantity we are going to limit
