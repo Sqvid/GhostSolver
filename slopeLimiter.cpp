@@ -8,22 +8,38 @@
 #include "slopeLimiter.hpp"
 
 namespace fvm {
-	const double slopeTolerence = 0.0001;
-
 	SlopeLimiter::SlopeLimiter(SlopeLimiterType slType) {
+		slopeTolerence_ = 0.00001;
 		slType_ = slType;
 
 		switch (slType) {
+			case SlopeLimiterType::none:
+				limit_ = doNothing_;
+				break;
+
 			case SlopeLimiterType::minbee:
 				limit_ = minbee_;
 				break;
 
-			case SlopeLimiterType::none:
-				limit_ = doNothing_;
+			case SlopeLimiterType::superbee:
+				limit_ = superbee_;
+				break;
+
+			case SlopeLimiterType::vanAlbada:
+				limit_ = superbee_;
+				break;
+
+			case SlopeLimiterType::vanLeer:
+				limit_ = superbee_;
 				break;
 		}
 	}
 
+	bool compare(const double& a, const double& b) {
+		return a < b;
+	}
+
+	// TODO: Is this needed?
 	constexpr double SlopeLimiter::xiLeft_(double r) {
 		return (2*r) / (1 + r);
 	}
@@ -35,13 +51,52 @@ namespace fvm {
 	constexpr double SlopeLimiter::minbee_(double r) {
 		if (r <= 0) {
 			return 0;
-		} if (r > 0 && r <= 1) {
+
+		} else if (r > 0 && r <= 1) {
 			return r;
+
 		} else {
 			return std::min(1.0, xiRight_(r));
 		}
 	}
 
+	constexpr double SlopeLimiter::superbee_(double r) {
+		if (r <= 0) {
+			return 0;
+
+		} if (r > 0 && r <= 0.5) {
+			return 2*r;
+
+		} else if (r > 0.5 && r <= 1) {
+			return 1;
+
+		} else {
+			return std::min({r, xiRight_(r), 2.0},
+					[](const double& a, const double& b) {
+						return a < b;
+					});
+		}
+	}
+
+	constexpr double SlopeLimiter::vanAlbada_(double r) {
+		if (r <= 0) {
+			return 0;
+
+		} else {
+			return std::min((r*(1 + r))/(1 + r*r), xiRight_(r));
+		}
+	}
+
+	constexpr double SlopeLimiter::vanLeer_(double r) {
+		if (r <= 0) {
+			return 0;
+
+		} else {
+			return std::min(xiLeft_(r), xiRight_(r));
+		}
+	}
+
+	// TODO: There must be a better way than requiring such a function.
 	constexpr double SlopeLimiter::doNothing_(double r) {
 		return r;
 	}
@@ -66,11 +121,11 @@ namespace fvm {
 
 			// This is probably a terrible hack to avoid dividing by
 			// zero.
-			if (std::fabs(deltaLeft[eIndex]) < slopeTolerence) {
+			if (std::fabs(deltaLeft[eIndex]) < slopeTolerence_) {
 				deltaLeft[eIndex] = 0;
 			}
 
-			if (std::fabs(deltaRight[eIndex]) < slopeTolerence) {
+			if (std::fabs(deltaRight[eIndex]) < slopeTolerence_) {
 				r = 10;
 			} else {
 				r = deltaLeft[eIndex] / deltaRight[eIndex];

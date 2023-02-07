@@ -11,7 +11,10 @@ namespace fvm {
 	// Slope limiter options.
 	enum class SlopeLimiterType {
 		none = -1,
-		minbee
+		minbee,
+		superbee,
+		vanAlbada,
+		vanLeer
 	};
 
 	class SlopeLimiter {
@@ -25,13 +28,16 @@ namespace fvm {
 		private:
 			// Private member data:
 			SlopeLimiterType slType_;
+			double slopeTolerence_;
 
 			// Private member functions:
 			std::function<double (double)> limit_;
-
 			constexpr static double xiLeft_(double r);
 			constexpr static double xiRight_(double r);
 			constexpr static double minbee_(double r);
+			constexpr static double superbee_(double r);
+			constexpr static double vanAlbada_(double r);
+			constexpr static double vanLeer_(double r);
 			constexpr static double doNothing_(double r);
 	};
 }
