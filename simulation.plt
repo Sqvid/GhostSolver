@@ -16,13 +16,13 @@ do for [i=1:numFiles] {
 		set multiplot layout 3,1
 
 		set title sprintf("Dataset %d: density", i)
-		plot file("dat", i) index j-1 u 1:2 with lines
+		plot file("dat", i) index j-1 u 1:2 with lines linetype rgb "blue"
 
 		set title sprintf("Dataset %d: velocity", i)
-		plot "" index j-1 u 1:3 with lines
+		plot "" index j-1 u 1:3 with lines linetype rgb "red"
 
 		set title sprintf("Dataset %d: pressure", i)
-		plot "" index j-1 u 1:4 with lines
+		plot "" index j-1 u 1:4 with lines linetype rgb "violet"
 
 		unset multiplot
 	}
