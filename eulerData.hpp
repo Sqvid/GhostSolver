@@ -8,9 +8,16 @@
 using std::size_t;
 
 namespace fvm {
-	// A QuantArray is the array of measured quantities within a cell.
+	/** Array that stores the physical quantities of a cell. These
+	 * quantities might be primitive (such as density, velocity, and
+	 * pressure), or conserved (such as density, momentum, and energy).
+	 * @brief Measured physical quantities within a cell.
+	 */
 	typedef std::array<double, 3> QuantArray;
 	// The cell vector stores the QuantArrays for every cell.
+	/** Vector of cell values.
+	 * @brief Vector of cell values.
+	 */
 	typedef std::vector<QuantArray> CellVector;
 
 	// Operator overloads for QuantArray.
@@ -40,6 +47,12 @@ namespace fvm {
 		conserved
 	};
 
+	/** Holds the simulation data. This includes current cell values, and
+	 * the type of quantities (e.g. primitive or conserved). Also provides
+	 * helper functions to manipulate and retrieve the state of the data.
+	 *
+	 * @brief Holds the simulation data.
+	 */
 	class EulerData {
 		public:
 			// Constructor

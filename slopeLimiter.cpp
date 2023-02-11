@@ -121,12 +121,12 @@ namespace fvm {
 
 			// This is probably a terrible hack to avoid dividing by
 			// zero.
-			if (std::fabs(deltaLeft[eIndex]) < slopeTolerence_) {
-				deltaLeft[eIndex] = 0;
-			}
+			//if (std::fabs(deltaLeft[eIndex]) < slopeTolerence_) {
+			//	deltaLeft[eIndex] = 0;
+			//}
 
 			if (std::fabs(deltaRight[eIndex]) < slopeTolerence_) {
-				r = 10;
+				r = 0;
 			} else {
 				r = deltaLeft[eIndex] / deltaRight[eIndex];
 			}

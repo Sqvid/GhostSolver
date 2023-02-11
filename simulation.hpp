@@ -19,8 +19,21 @@ namespace fvm {
 		force,
 	};
 
-	// The simulation contains the parameters of the simulation as well as the
-	// associated scheme, and flux expression being used.
+	/** The main class that holds the input parameters of the simulation.
+	 * The simulation contains the parameters of the simulation as well as
+	 * the associated scheme, and flux expression being used.
+	 *
+	 * @brief Holds the initial conditions and numerical scheme options.
+	 * @param nCells Number of cells in the simulation.
+	 * @param xStart Minimum x-value.
+	 * @param xEnd Maximum x-value.
+	 * @param tStart Start time of the simulation.
+	 * @param tEnd End time of the simulation.
+	 * @param cfl Courant number to use.
+	 * @param gamma Adiabatic constant of the medium.
+	 * @param fluxScheme Flux scheme to use.
+	 * @param slType Type of slope-limiting to use, if any.
+	 */
 	class Simulation {
 		public:
 			// Constructor
