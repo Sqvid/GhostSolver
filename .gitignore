@@ -8,6 +8,8 @@ compile_commands.json
 
 # Directories
 .cache/
+html/
+latex/
 
 # Executable
 main
