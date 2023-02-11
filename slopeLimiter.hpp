@@ -32,13 +32,12 @@ namespace fvm {
 
 			// Private member functions:
 			std::function<double (double)> limit_;
-			constexpr static double xiLeft_(double r);
-			constexpr static double xiRight_(double r);
-			constexpr static double minbee_(double r);
-			constexpr static double superbee_(double r);
-			constexpr static double vanAlbada_(double r);
-			constexpr static double vanLeer_(double r);
-			constexpr static double doNothing_(double r);
+			static double xiRight_(double r);
+			static double minbee_(double r);
+			static double superbee_(double r);
+			static double vanAlbada_(double r);
+			static double vanLeer_(double r);
+			static double doNothing_(double r);
 	};
 }
 

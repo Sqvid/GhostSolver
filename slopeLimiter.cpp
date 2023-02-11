@@ -39,16 +39,11 @@ namespace fvm {
 		return a < b;
 	}
 
-	// TODO: Is this needed?
-	constexpr double SlopeLimiter::xiLeft_(double r) {
-		return (2*r) / (1 + r);
-	}
-
-	constexpr double SlopeLimiter::xiRight_(double r) {
+	double SlopeLimiter::xiRight_(double r) {
 		return 2 / (1 + r);
 	}
 
-	constexpr double SlopeLimiter::minbee_(double r) {
+	double SlopeLimiter::minbee_(double r) {
 		if (r <= 0) {
 			return 0;
 
@@ -60,7 +55,7 @@ namespace fvm {
 		}
 	}
 
-	constexpr double SlopeLimiter::superbee_(double r) {
+	double SlopeLimiter::superbee_(double r) {
 		if (r <= 0) {
 			return 0;
 
@@ -78,7 +73,7 @@ namespace fvm {
 		}
 	}
 
-	constexpr double SlopeLimiter::vanAlbada_(double r) {
+	double SlopeLimiter::vanAlbada_(double r) {
 		if (r <= 0) {
 			return 0;
 
@@ -87,17 +82,18 @@ namespace fvm {
 		}
 	}
 
-	constexpr double SlopeLimiter::vanLeer_(double r) {
+	double SlopeLimiter::vanLeer_(double r) {
 		if (r <= 0) {
 			return 0;
 
 		} else {
-			return std::min(xiLeft_(r), xiRight_(r));
+			auto xiR = xiRight_(r);
+			return std::min(xiR * r, xiR);
 		}
 	}
 
 	// TODO: There must be a better way than requiring such a function.
-	constexpr double SlopeLimiter::doNothing_(double r) {
+	double SlopeLimiter::doNothing_(double r) {
 		return r;
 	}
 
@@ -118,12 +114,6 @@ namespace fvm {
 			QuantArray delta = 0.5 * (deltaLeft + deltaRight);
 
 			double r;
-
-			// This is probably a terrible hack to avoid dividing by
-			// zero.
-			//if (std::fabs(deltaLeft[eIndex]) < slopeTolerence_) {
-			//	deltaLeft[eIndex] = 0;
-			//}
 
 			if (std::fabs(deltaRight[eIndex]) < slopeTolerence_) {
 				r = 0;
