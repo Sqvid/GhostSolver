@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++14 -Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor \
+CXXFLAGS = -std=c++17 -Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor \
 	  -Wold-style-cast -Wcast-align -Wuseless-cast \
 	  -Wdouble-promotion -Wnull-dereference -Wmisleading-indentation \
 	  -Wduplicated-cond -Wformat=2 -g -O0
@@ -19,12 +19,15 @@ $(BIN): $(OBJ)
 release: CXXFLAGS += $(OPTFLAG)
 release: $(BIN)
 
+DOCDIRS = html/ latex/
+
 .PHONY: clean
 clean:
 	$(RM) *.o
 	$(RM) $(BIN)
 	$(RM) *.dat
 	$(RM) *.gif
+	$(RM) -r $(DOCDIRS)
 
 tidy:
 	$(RM) *.o
@@ -34,3 +37,6 @@ run:
 
 plot:
 	./*.plt
+
+docs:
+	doxygen Doxyfile
