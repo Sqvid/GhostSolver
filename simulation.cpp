@@ -274,7 +274,7 @@ namespace fvm {
 					* QuantArray({1, sStar,
 					uRight[eIndex]/dR + (sStar - vR)*(sStar + pR/(dR * (sR - vR)))});
 
-			flux = fluxExpr_(uRight) + sL * (hllcR - uRight);
+			flux = fluxExpr_(uRight) + sR * (hllcR - uRight);
 
 		} else if (sR < 0) {
 			flux = fluxExpr_(uRight);
