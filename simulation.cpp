@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <functional>
@@ -221,6 +222,67 @@ namespace fvm {
 		return 0.5 * (lfFlux_(u, uNext) + richtmyerFlux_(u, uNext));
 	}
 
+	QuantArray Simulation::hllcFlux_(const QuantArray& u, const QuantArray& uNext) {
+		QuantArray flux;
+
+		// Make primitive version copies of the given cell values.
+		QuantArray primL = makePrimQuants(u, gamma_);
+		QuantArray primR = makePrimQuants(uNext, gamma_);
+
+		// Indices for primitive quantities.
+		int dIndex = static_cast<int>(PrimitiveQuant::density);
+		int vIndex = static_cast<int>(PrimitiveQuant::velocity);
+		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
+
+		// Index for energy.
+		int eIndex = static_cast<int>(ConservedQuant::energy);
+
+		// Alias quantities for convenience.
+		double dL = primL[dIndex];
+		double vL = primL[vIndex];
+		double pL = primL[pIndex];
+
+		double dR = primR[dIndex];
+		double vR = primR[vIndex];
+		double pR = primR[pIndex];
+
+		double cSoundL = std::sqrt((gamma_ * pL) / dL);
+		double cSoundR = std::sqrt((gamma_ * pR) / dR);
+
+		// Find approximate left and right sound speeds.
+		double sPlus = std::max(std::fabs(vL) + cSoundL, std::fabs(vR) + cSoundR);
+
+		double sL = -sPlus;
+		double sR = sPlus;
+
+		// Approximate contact sound speed.
+		double sStar = (pR - pL + dL*vL*(sL - vL) - dR*vR*(sR - vR))
+					/ (dL*(sL - vL) - dR*(sR - vR));
+
+		if ( sL >= 0 ) {
+			flux = fluxExpr_(u);
+
+		} else if (sL < 0 && sStar >= 0) {
+			QuantArray hllcL = dL * ((sL - vL) / (sL - sStar))
+					* QuantArray({1, sStar,
+					u[eIndex]/dL + (sStar - vL)*(sStar + pL/(dL * (sL - vL)))});
+
+			flux = fluxExpr_(u) + sL * (hllcL - u);
+
+		} else if (sStar < 0 && sR >= 0) {
+			QuantArray hllcR = dR * ((sR - vR) / (sR - sStar))
+					* QuantArray({1, sStar,
+					uNext[eIndex]/dR + (sStar - vR)*(sStar + pR/(dR * (sR - vR)))});
+
+			flux = fluxExpr_(uNext) + sL * (hllcR - uNext);
+
+		} else if (sR < 0) {
+			flux = fluxExpr_(uNext);
+		}
+
+		return flux;
+	}
+
 	// Return the appropriate value for the given cell, flux scheme, and flux expression.
 	QuantArray Simulation::calcFlux_(const QuantArray& u, const QuantArray& uNext) {
 		QuantArray flux;
@@ -236,6 +298,10 @@ namespace fvm {
 
 			case FluxScheme::force:
 				flux = forceFlux_(u, uNext);
+				break;
+
+			case FluxScheme::hllc:
+				flux = hllcFlux_(u, uNext);
 				break;
 		}
 

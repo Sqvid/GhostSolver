@@ -102,4 +102,25 @@ namespace fvm {
 
 		mode_ = EulerDataMode::primitive;
 	}
+
+	// @brief Helper function to convert QuantArray variables to primitive form.
+	// @note Useful for Riemann-based schemes.
+	// @warn Does not check original state of variables. Use with caution!
+	QuantArray makePrimQuants(const QuantArray& u, const double gamma) {
+		QuantArray prim;
+		prim = u;
+
+		int dIndex = static_cast<size_t>(ConservedQuant::density);
+		int moIndex = static_cast<int>(ConservedQuant::momentum);
+		int eIndex = static_cast<int>(ConservedQuant::energy);
+
+		// Convert energy to pressure.
+		prim[eIndex] = (gamma - 1) * (u[eIndex]
+				- 0.5 * ((u[moIndex] * u[moIndex]) / u[dIndex]));
+
+		// Convert momentum to velocity.
+		prim[moIndex] = u[moIndex] / u[dIndex];
+
+		return prim;
+	}
 }

@@ -17,6 +17,7 @@ namespace fvm {
 		laxFriedrichs,
 		richtmyer,
 		force,
+		hllc
 	};
 
 	/** The main class that holds the input parameters of the simulation.
@@ -96,6 +97,7 @@ namespace fvm {
 			QuantArray lfFlux_(const QuantArray& u, const QuantArray& uNext);
 			QuantArray richtmyerFlux_(const QuantArray& u, const QuantArray& uNext);
 			QuantArray forceFlux_(const QuantArray& u, const QuantArray& uNext);
+			QuantArray hllcFlux_(const QuantArray& u, const QuantArray& uNext);
 			QuantArray calcFlux_(const QuantArray& u, const QuantArray& uNext);
 			QuantArray fluxExpr_(QuantArray u);
 			// Wrappers around EulerData mode conversion function.

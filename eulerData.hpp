@@ -29,6 +29,8 @@ namespace fvm {
 	QuantArray operator*(QuantArray u, double a);
 	QuantArray operator/(QuantArray u, double a);
 
+	QuantArray makePrimQuants(const QuantArray& u, const double gamma);
+
 	enum class PrimitiveQuant {
 		density = 0,
 		velocity,
