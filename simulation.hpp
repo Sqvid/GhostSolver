@@ -94,11 +94,11 @@ namespace fvm {
 
 			// Private member functions
 			double calcTimeStep_();
-			QuantArray lfFlux_(const QuantArray& u, const QuantArray& uNext);
-			QuantArray richtmyerFlux_(const QuantArray& u, const QuantArray& uNext);
-			QuantArray forceFlux_(const QuantArray& u, const QuantArray& uNext);
-			QuantArray hllcFlux_(const QuantArray& u, const QuantArray& uNext);
-			QuantArray calcFlux_(const QuantArray& u, const QuantArray& uNext);
+			QuantArray lfFlux_(const QuantArray& uLeft, const QuantArray& uRight);
+			QuantArray richtmyerFlux_(const QuantArray& uLeft, const QuantArray& uRight);
+			QuantArray forceFlux_(const QuantArray& uLeft, const QuantArray& uRight);
+			QuantArray hllcFlux_(const QuantArray& uLeft, const QuantArray& uRight);
+			QuantArray calcFlux_(const QuantArray& uLeft, const QuantArray& uRight);
 			QuantArray fluxExpr_(QuantArray u);
 			// Wrappers around EulerData mode conversion function.
 			void setMode(EulerDataMode want) { eulerData_.setMode(want); }

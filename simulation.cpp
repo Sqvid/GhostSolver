@@ -204,30 +204,30 @@ namespace fvm {
 	}
 
 	// Lax-Friedrichs flux function.
-	QuantArray Simulation::lfFlux_(const QuantArray& u, const QuantArray& uNext) {
-		return 0.5 * (dx_/dt_) * (u - uNext)
-			+ 0.5 * (fluxExpr_(uNext) + fluxExpr_(u));
+	QuantArray Simulation::lfFlux_(const QuantArray& uLeft, const QuantArray& uRight) {
+		return 0.5 * (dx_/dt_) * (uLeft - uRight)
+			+ 0.5 * (fluxExpr_(uRight) + fluxExpr_(uLeft));
 	}
 
 	// Richtmeyer flux function.
-	QuantArray Simulation::richtmyerFlux_(const QuantArray& u, const QuantArray& uNext) {
+	QuantArray Simulation::richtmyerFlux_(const QuantArray& uLeft, const QuantArray& uRight) {
 		QuantArray halfStepUpdate =
-			0.5 * (u + uNext)
-			- 0.5 * (dt_/dx_) * (fluxExpr_(uNext) - fluxExpr_(u));
+			0.5 * (uLeft + uRight)
+			- 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
 
 		return fluxExpr_(halfStepUpdate);
 	}
 
-	QuantArray Simulation::forceFlux_(const QuantArray& u, const QuantArray& uNext) {
-		return 0.5 * (lfFlux_(u, uNext) + richtmyerFlux_(u, uNext));
+	QuantArray Simulation::forceFlux_(const QuantArray& uLeft, const QuantArray& uRight) {
+		return 0.5 * (lfFlux_(uLeft, uRight) + richtmyerFlux_(uLeft, uRight));
 	}
 
-	QuantArray Simulation::hllcFlux_(const QuantArray& u, const QuantArray& uNext) {
+	QuantArray Simulation::hllcFlux_(const QuantArray& uLeft, const QuantArray& uRight) {
 		QuantArray flux;
 
 		// Make primitive version copies of the given cell values.
-		QuantArray primL = makePrimQuants(u, gamma_);
-		QuantArray primR = makePrimQuants(uNext, gamma_);
+		QuantArray primL = makePrimQuants(uLeft, gamma_);
+		QuantArray primR = makePrimQuants(uRight, gamma_);
 
 		// Indices for primitive quantities.
 		int dIndex = static_cast<int>(PrimitiveQuant::density);
@@ -260,48 +260,48 @@ namespace fvm {
 					/ (dL*(sL - vL) - dR*(sR - vR));
 
 		if ( sL >= 0 ) {
-			flux = fluxExpr_(u);
+			flux = fluxExpr_(uLeft);
 
 		} else if (sL < 0 && sStar >= 0) {
 			QuantArray hllcL = dL * ((sL - vL) / (sL - sStar))
 					* QuantArray({1, sStar,
-					u[eIndex]/dL + (sStar - vL)*(sStar + pL/(dL * (sL - vL)))});
+					uLeft[eIndex]/dL + (sStar - vL)*(sStar + pL/(dL * (sL - vL)))});
 
-			flux = fluxExpr_(u) + sL * (hllcL - u);
+			flux = fluxExpr_(uLeft) + sL * (hllcL - uLeft);
 
 		} else if (sStar < 0 && sR >= 0) {
 			QuantArray hllcR = dR * ((sR - vR) / (sR - sStar))
 					* QuantArray({1, sStar,
-					uNext[eIndex]/dR + (sStar - vR)*(sStar + pR/(dR * (sR - vR)))});
+					uRight[eIndex]/dR + (sStar - vR)*(sStar + pR/(dR * (sR - vR)))});
 
-			flux = fluxExpr_(uNext) + sL * (hllcR - uNext);
+			flux = fluxExpr_(uRight) + sL * (hllcR - uRight);
 
 		} else if (sR < 0) {
-			flux = fluxExpr_(uNext);
+			flux = fluxExpr_(uRight);
 		}
 
 		return flux;
 	}
 
 	// Return the appropriate value for the given cell, flux scheme, and flux expression.
-	QuantArray Simulation::calcFlux_(const QuantArray& u, const QuantArray& uNext) {
+	QuantArray Simulation::calcFlux_(const QuantArray& uLeft, const QuantArray& uRight) {
 		QuantArray flux;
 
 		switch (fluxScheme_) {
 			case FluxScheme::laxFriedrichs:
-				flux = lfFlux_(u, uNext);
+				flux = lfFlux_(uLeft, uRight);
 				break;
 
 			case FluxScheme::richtmyer:
-				flux = richtmyerFlux_(u, uNext);
+				flux = richtmyerFlux_(uLeft, uRight);
 				break;
 
 			case FluxScheme::force:
-				flux = forceFlux_(u, uNext);
+				flux = forceFlux_(uLeft, uRight);
 				break;
 
 			case FluxScheme::hllc:
-				flux = hllcFlux_(u, uNext);
+				flux = hllcFlux_(uLeft, uRight);
 				break;
 		}
 
