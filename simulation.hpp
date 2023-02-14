@@ -49,17 +49,28 @@ namespace fvm {
 
 			// Accessors
 			// Getters
-			unsigned int nCells() { return nCells_; }
+			/// @brief Get number of cells.
+			int nCells() { return nCells_; }
+			/// @brief Get the minimum x value.
 			double xStart() { return xStart_; }
+			/// @brief Get the maximum x value.
 			double xEnd() { return xEnd_; }
+			/// @brief Get the start time.
 			double tStart() { return tStart_; }
+			/// @brief Get the end time.
 			double tEnd() { return tEnd_; }
+			/// @brief Get the current simulation time.
 			double tNow() { return tNow_; };
+			/// @brief Get the Courant number being used.
 			double cfl() { return cfl_; }
+			/// @brief Get the x-cell length.
 			double dx() { return dx_; }
+			/// @brief Get the current timestep.
 			double dt() { return dt_; }
+			/// @brief Get the adiabatic constant.
 			double gamma() { return gamma_; }
-			EulerData data() { return eulerData_; }
+			/// @brief Get the underlying data.
+			const EulerData& data() { return eulerData_; }
 
 			// Wrapper around EulerData quantity getter.
 			//QuantArray getQuantity(size_t i) { return eulerData_[i]; }
