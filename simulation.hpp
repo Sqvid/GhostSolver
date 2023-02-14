@@ -39,9 +39,8 @@ namespace fvm {
 	class Simulation {
 		public:
 			// Constructor
-			Simulation(unsigned int nCells, double xStart, double xEnd,
-					double tStart, double tEnd, double cfl,
-					double gamma,
+			Simulation(int nCells, double xStart, double xEnd, double tStart,
+					double tEnd, double cfl, double gamma,
 					std::function<double (double)> densityDist,
 					std::function<double (double)> velocityDist,
 					std::function<double (double)> pressureDist,

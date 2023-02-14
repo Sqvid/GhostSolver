@@ -9,82 +9,98 @@
 #include "slopeLimiter.hpp"
 
 namespace fvm {
-	const double slopeTolerence_ = 0.00001;
+	const double slopeTolerence = 0.00001;
 
 	double xiRight(double r) {
 		return 2 / (1 + r);
 	}
 
 	double minbee(double r) {
-		if (r <= 0) {
-			return 0;
+		double limited;
 
-		} else if (r > 0 && r <= 1) {
-			return r;
+		if (r <= 0) {
+			limited = 0;
+
+		} else if (r <= 1) {
+			limited = r;
 
 		} else {
-			return std::min(1.0, xiRight(r));
+			limited = std::min(1.0, xiRight(r));
 		}
+
+		return limited;
 	}
 
 	double superbee(double r) {
+		double limited;
+
 		if (r <= 0) {
-			return 0;
+			limited = 0;
 
-		} if (r > 0 && r <= 0.5) {
-			return 2*r;
+		} if (r <= 0.5) {
+			limited = 2*r;
 
-		} else if (r > 0.5 && r <= 1) {
-			return 1;
+		} else if (r <= 1) {
+			limited = 1;
 
 		} else {
-			return std::min({r, xiRight(r), 2.0},
+			limited = std::min({r, xiRight(r), 2.0},
 					[](const double& a, const double& b) {
 						return a < b;
 					});
 		}
+
+		return limited;
 	}
 
 	double vanAlbada(double r) {
+		double limited;
+
 		if (r <= 0) {
-			return 0;
+			limited = 0;
 
 		} else {
-			return std::min((r*(1 + r))/(1 + r*r), xiRight(r));
+			limited = std::min((r*(1 + r))/(1 + r*r), xiRight(r));
 		}
+
+		return limited;
 	}
 
 	double vanLeer(double r) {
+		double limited;
+
 		if (r <= 0) {
-			return 0;
+			limited = 0;
 
 		} else {
-			auto xiR = xiRight(r);
-			return std::min(xiR * r, xiR);
+			double xiR = xiRight(r);
+			limited = std::min(xiR * r, xiR);
 		}
+
+		return limited;
 	}
 
 	double limit(double r, SlopeLimiter slType) {
-		double result = r;
+		double limited = r;
 
 		switch (slType) {
 			case SlopeLimiter::minbee:
-				result = minbee(r);
+				limited = minbee(r);
 				break;
 			case SlopeLimiter::superbee:
-				result = superbee(r);
+				limited = superbee(r);
 				break;
 			case SlopeLimiter::vanAlbada:
-				result = vanAlbada(r);
+				limited = vanAlbada(r);
 				break;
 			case SlopeLimiter::vanLeer:
-				result = vanLeer(r);
+				limited = vanLeer(r);
 				break;
 			default:
 				break;
 		}
 
-		return result;
+		return limited;
 	}
 
 	void linearReconst(EulerData& eulerData, CellVector& lIfaces, CellVector& rIfaces, SlopeLimiter slType) {
@@ -105,7 +121,7 @@ namespace fvm {
 
 			double r;
 
-			if (std::fabs(deltaRight[eIndex]) < slopeTolerence_) {
+			if (std::fabs(deltaRight[eIndex]) < slopeTolerence) {
 				r = 0;
 			} else {
 				r = deltaLeft[eIndex] / deltaRight[eIndex];

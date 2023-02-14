@@ -14,7 +14,7 @@ namespace fvm {
 	// Public member function definitions:
 
 	// Constructor:
-	Simulation::Simulation(unsigned int nCells, double xStart, double xEnd,
+	Simulation::Simulation(int nCells, double xStart, double xEnd,
 			double tStart, double tEnd, double cfl, double gamma,
 			std::function<double (double)> densityDist,
 			std::function<double (double)> velocityDist,
@@ -263,21 +263,21 @@ namespace fvm {
 		if ( sL >= 0 ) {
 			flux = fluxExpr_(uLeft);
 
-		} else if (sL < 0 && sStar >= 0) {
+		} else if (sStar >= 0) {
 			QuantArray hllcL = dL * ((sL - vL) / (sL - sStar))
 					* QuantArray({1, sStar,
 					uLeft[eIndex]/dL + (sStar - vL)*(sStar + pL/(dL * (sL - vL)))});
 
 			flux = fluxExpr_(uLeft) + sL * (hllcL - uLeft);
 
-		} else if (sStar < 0 && sR >= 0) {
+		} else if (sR >= 0) {
 			QuantArray hllcR = dR * ((sR - vR) / (sR - sStar))
 					* QuantArray({1, sStar,
 					uRight[eIndex]/dR + (sStar - vR)*(sStar + pR/(dR * (sR - vR)))});
 
 			flux = fluxExpr_(uRight) + sR * (hllcR - uRight);
 
-		} else if (sR < 0) {
+		} else {
 			flux = fluxExpr_(uRight);
 		}
 
