@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "simulation.hpp"
+#include "slopeLimiter.hpp"
 
 using std::size_t;
 
@@ -19,9 +20,9 @@ namespace fvm {
 			std::function<double (double)> velocityDist,
 			std::function<double (double)> pressureDist,
 			FluxScheme fluxScheme,
-			SlopeLimiterType slType)
+			SlopeLimiter slType)
 			// Initialiser list
-			: sLimiter_(slType), eulerData_(gamma) {
+			: eulerData_(gamma) {
 
 		// Check for sane input values.
 		if (nCells <= 0) {
@@ -83,13 +84,13 @@ namespace fvm {
 		tNow_ += dt_;
 
 		// If slope limiting has been requested.
-		if (slType_ != SlopeLimiterType::none) {
+		if (slType_ != SlopeLimiter::none) {
 			// FIXME: Calculate these from reconstructed boundary
 			// cells.
 			flux_[0] = calcFlux_(eulerData_[0], eulerData_[1]);
 			flux_[nCells_] = calcFlux_(eulerData_[nCells_], eulerData_[nCells_ + 1]);
 
-			sLimiter_.linearReconst(eulerData_, lSlopeIfaces_, rSlopeIfaces_);
+			linearReconst(eulerData_, lSlopeIfaces_, rSlopeIfaces_, slType_);
 
 			// Half-timestep evolution.
 			for (std::size_t i = 0; i < nCells_; ++i) {

@@ -20,6 +20,7 @@ namespace fvm {
 		hllc
 	};
 
+
 	/** The main class that holds the input parameters of the simulation.
 	 * The simulation contains the parameters of the simulation as well as
 	 * the associated scheme, and flux expression being used.
@@ -45,7 +46,7 @@ namespace fvm {
 					std::function<double (double)> velocityDist,
 					std::function<double (double)> pressureDist,
 					FluxScheme fluxScheme,
-					SlopeLimiterType slType = SlopeLimiterType::none);
+					SlopeLimiter slType = SlopeLimiter::none);
 
 			// Accessors
 			// Getters
@@ -81,8 +82,7 @@ namespace fvm {
 			double dt_;
 			double gamma_;
 			FluxScheme fluxScheme_;
-			SlopeLimiterType slType_;
-			SlopeLimiter sLimiter_;
+			SlopeLimiter slType_;
 			std::function<double (double)> densityDist_;
 			std::function<double (double)> velocityDist_;
 			std::function<double (double)> pressureDist_;

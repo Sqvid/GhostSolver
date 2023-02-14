@@ -5,45 +5,17 @@
 #include <stdexcept>
 
 #include "eulerData.hpp"
+#include "simulation.hpp"
 #include "slopeLimiter.hpp"
 
 namespace fvm {
-	SlopeLimiter::SlopeLimiter(SlopeLimiterType slType) {
-		slopeTolerence_ = 0.00001;
-		slType_ = slType;
+	const double slopeTolerence_ = 0.00001;
 
-		switch (slType) {
-			case SlopeLimiterType::none:
-				limit_ = doNothing_;
-				break;
-
-			case SlopeLimiterType::minbee:
-				limit_ = minbee_;
-				break;
-
-			case SlopeLimiterType::superbee:
-				limit_ = superbee_;
-				break;
-
-			case SlopeLimiterType::vanAlbada:
-				limit_ = superbee_;
-				break;
-
-			case SlopeLimiterType::vanLeer:
-				limit_ = superbee_;
-				break;
-		}
-	}
-
-	bool compare(const double& a, const double& b) {
-		return a < b;
-	}
-
-	double SlopeLimiter::xiRight_(double r) {
+	double xiRight(double r) {
 		return 2 / (1 + r);
 	}
 
-	double SlopeLimiter::minbee_(double r) {
+	double minbee(double r) {
 		if (r <= 0) {
 			return 0;
 
@@ -51,11 +23,11 @@ namespace fvm {
 			return r;
 
 		} else {
-			return std::min(1.0, xiRight_(r));
+			return std::min(1.0, xiRight(r));
 		}
 	}
 
-	double SlopeLimiter::superbee_(double r) {
+	double superbee(double r) {
 		if (r <= 0) {
 			return 0;
 
@@ -66,38 +38,56 @@ namespace fvm {
 			return 1;
 
 		} else {
-			return std::min({r, xiRight_(r), 2.0},
+			return std::min({r, xiRight(r), 2.0},
 					[](const double& a, const double& b) {
 						return a < b;
 					});
 		}
 	}
 
-	double SlopeLimiter::vanAlbada_(double r) {
+	double vanAlbada(double r) {
 		if (r <= 0) {
 			return 0;
 
 		} else {
-			return std::min((r*(1 + r))/(1 + r*r), xiRight_(r));
+			return std::min((r*(1 + r))/(1 + r*r), xiRight(r));
 		}
 	}
 
-	double SlopeLimiter::vanLeer_(double r) {
+	double vanLeer(double r) {
 		if (r <= 0) {
 			return 0;
 
 		} else {
-			auto xiR = xiRight_(r);
+			auto xiR = xiRight(r);
 			return std::min(xiR * r, xiR);
 		}
 	}
 
-	// TODO: There must be a better way than requiring such a function.
-	double SlopeLimiter::doNothing_(double r) {
-		return r;
+	double limit(double r, SlopeLimiter slType) {
+		double result = r;
+
+		switch (slType) {
+			case SlopeLimiter::minbee:
+				result = minbee(r);
+				break;
+			case SlopeLimiter::superbee:
+				result = superbee(r);
+				break;
+			case SlopeLimiter::vanAlbada:
+				result = vanAlbada(r);
+				break;
+			case SlopeLimiter::vanLeer:
+				result = vanLeer(r);
+				break;
+			default:
+				break;
+		}
+
+		return result;
 	}
 
-	void SlopeLimiter::linearReconst(EulerData& eulerData, CellVector& lIfaces, CellVector& rIfaces) {
+	void linearReconst(EulerData& eulerData, CellVector& lIfaces, CellVector& rIfaces, SlopeLimiter slType) {
 		// Alias the numerical data.
 		eulerData.setMode(EulerDataMode::conserved);
 		CellVector& u = eulerData.data();
@@ -121,8 +111,8 @@ namespace fvm {
 				r = deltaLeft[eIndex] / deltaRight[eIndex];
 			}
 
-			QuantArray uLeft = u[i] - 0.5 * delta * limit_(r);
-			QuantArray uRight = u[i] + 0.5 * delta * limit_(r);
+			QuantArray uLeft = u[i] - 0.5 * delta * limit(r, slType);
+			QuantArray uRight = u[i] + 0.5 * delta * limit(r, slType);
 
 			lIfaces[i - 1] = uLeft;
 			rIfaces[i - 1] = uRight;
