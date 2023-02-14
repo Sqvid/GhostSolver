@@ -29,8 +29,6 @@ namespace fvm {
 	QuantArray operator*(QuantArray u, double a);
 	QuantArray operator/(QuantArray u, double a);
 
-	QuantArray makePrimQuants(const QuantArray& u, const double gamma);
-
 	enum class PrimitiveQuant {
 		density = 0,
 		velocity,
@@ -59,7 +57,7 @@ namespace fvm {
 		public:
 			// Constructor
 			// Data is assumed to be in primitive form by default.
-			EulerData(double gamma, EulerDataMode mode = EulerDataMode::primitive)
+			explicit EulerData(double gamma, EulerDataMode mode = EulerDataMode::primitive)
 				// Initialiser list
 				: gamma_(gamma), mode_(mode) {};
 
