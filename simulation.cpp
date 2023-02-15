@@ -50,9 +50,6 @@ namespace fvm {
 		lSlopeIfaces_.resize(nCells_);
 		rSlopeIfaces_.resize(nCells_);
 		slType_ = slType;
-		densityDist_ = densityDist;
-		velocityDist_ = velocityDist;
-		pressureDist_ = pressureDist;
 
 		// Indices for primitive quantities.
 		int dIndex = static_cast<int>(PrimitiveQuant::density);
@@ -64,9 +61,9 @@ namespace fvm {
 			// ith cell centre
 			double x = xStart_ + (i - 0.5) * dx_;
 			QuantArray cellValues;
-			cellValues[dIndex] = densityDist_(x);
-			cellValues[vIndex] = velocityDist_(x);
-			cellValues[pIndex] = pressureDist_(x);
+			cellValues[dIndex] = densityDist(x);
+			cellValues[vIndex] = velocityDist(x);
+			cellValues[pIndex] = pressureDist(x);
 
 			eulerData_.setQuantity(i, cellValues);
 		}

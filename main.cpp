@@ -8,8 +8,7 @@
 #include "toroTests.hpp"
 
 void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
-	sim.saveToFile(output);
-	output << "\n\n";
+	output << sim << "\n\n";
 
 	// Change variables to conserved for solving.
 	int nFrame = 0;
@@ -19,8 +18,7 @@ void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
 
 		if (nFrame % 3 == 0) {
 			// Change variables back to primitive for output.
-			output << sim;
-			output << "\n\n";
+			output << sim << "\n\n";
 		}
 	}
 

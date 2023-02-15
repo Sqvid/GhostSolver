@@ -93,9 +93,6 @@ namespace fvm {
 			double gamma_;
 			FluxScheme fluxScheme_;
 			SlopeLimiter slType_;
-			std::function<double (double)> densityDist_;
-			std::function<double (double)> velocityDist_;
-			std::function<double (double)> pressureDist_;
 			EulerData eulerData_;
 			CellVector flux_;
 			// Left and right reconstructed interface values.
