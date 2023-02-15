@@ -1,15 +1,9 @@
 #include <algorithm>
 #include <cmath>
-#include <cstddef>
-#include <fstream>
-#include <functional>
-#include <iostream>
 #include <stdexcept>
 
 #include "simulation.hpp"
 #include "slopeLimiter.hpp"
-
-using std::size_t;
 
 namespace fvm {
 	// Public member function definitions:
@@ -44,12 +38,13 @@ namespace fvm {
 		dx_ = (xEnd_ - xStart_) / nCells_;
 		dt_ = 0;
 		gamma_ = gamma;
+		fluxScheme_ = fluxScheme;
+		slType_ = slType;
+
 		eulerData_.data().resize(nCells_ + 2);
 		flux_.resize(nCells_ + 1);
-		fluxScheme_ = fluxScheme;
 		lSlopeIfaces_.resize(nCells_);
 		rSlopeIfaces_.resize(nCells_);
-		slType_ = slType;
 
 		// Indices for primitive quantities.
 		int dIndex = static_cast<int>(PrimitiveQuant::density);
@@ -88,7 +83,7 @@ namespace fvm {
 			flux_[0] = calcFlux_(eulerData_[0], eulerData_[1]);
 			flux_[nCells_] = calcFlux_(eulerData_[nCells_], eulerData_[nCells_ + 1]);
 
-			linearReconst(eulerData_, lSlopeIfaces_, rSlopeIfaces_, slType_);
+			internal::linearReconst(eulerData_, lSlopeIfaces_, rSlopeIfaces_, slType_);
 
 			// Half-timestep evolution.
 			for (std::size_t i = 0; i < nCells_; ++i) {

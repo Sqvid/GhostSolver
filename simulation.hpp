@@ -2,9 +2,10 @@
 #define GHOSTSOLVER_FVMSIMULATION_HPP
 
 #include <array>
+#include <cstddef>
+#include <fstream>
 #include <functional>
 #include <vector>
-#include <fstream>
 
 #include "eulerData.hpp"
 #include "slopeLimiter.hpp"
