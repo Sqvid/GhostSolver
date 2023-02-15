@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <stdexcept>
@@ -97,8 +98,7 @@ namespace fvm {
 				QuantArray& uLeft = lSlopeIfaces_[i];
 				QuantArray& uRight = rSlopeIfaces_[i];
 
-				QuantArray cellChange = 0.5 * (dt_/dx_)
-					* (fluxExpr_(uRight) - fluxExpr_(uLeft));
+				QuantArray cellChange = 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
 
 				uLeft = uLeft - cellChange;
 				uRight = uRight - cellChange;
@@ -131,26 +131,28 @@ namespace fvm {
 	}
 
 	// Output simulation data in Gnuplot format.
-	void Simulation::saveToFile(std::ofstream& output) {
+	std::ofstream& operator<<(std::ofstream& output, Simulation& sim) {
 		// Output data in primitive form.
-		eulerData_.setMode(EulerDataMode::primitive);
+		sim.eulerData_.setMode(EulerDataMode::primitive);
 
-		for (size_t i = 0; i < nCells_; ++i) {
-			double x = xStart_ + i * dx_;
+		for (size_t i = 0; i < sim.nCells_; ++i) {
+			double x = sim.xStart_ + i * sim.dx_;
 
 			// Indices of primitive quantities.
-			int dIndex = static_cast<int>(fvm::PrimitiveQuant::density);
-			int vIndex = static_cast<int>(fvm::PrimitiveQuant::velocity);
-			int pIndex = static_cast<int>(fvm::PrimitiveQuant::pressure);
+			int dIndex = static_cast<int>(PrimitiveQuant::density);
+			int vIndex = static_cast<int>(PrimitiveQuant::velocity);
+			int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
 			// Values of primitive quantities.
-			QuantArray cellValues = eulerData_[i];
+			QuantArray cellValues = sim[i];
 
 			output << x << " "
 				<< cellValues[dIndex] << " "
 				<< cellValues[vIndex] << " "
 				<< cellValues[pIndex] << "\n";
 		}
+
+		return output;
 	}
 
 	// Private member function definitions:

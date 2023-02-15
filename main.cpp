@@ -19,12 +19,12 @@ void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
 
 		if (nFrame % 3 == 0) {
 			// Change variables back to primitive for output.
-			sim.saveToFile(output);
+			output << sim;
 			output << "\n\n";
 		}
 	}
 
-	sim.saveToFile(output);
+	output << sim;
 }
 
 int main(void) {

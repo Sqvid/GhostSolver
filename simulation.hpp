@@ -72,12 +72,12 @@ namespace fvm {
 			/// @brief Get the underlying data.
 			const EulerData& data() { return eulerData_; }
 
-			// Wrapper around EulerData quantity getter.
-			//QuantArray getQuantity(size_t i) { return eulerData_[i]; }
-
-			// Public member functions
+			// Public member functions.
 			void step();
-			void saveToFile(std::ofstream& output);
+
+			// Operator overloads.
+			const QuantArray& operator[](size_t i) { return eulerData_[i]; }
+			friend std::ofstream& operator<<(std::ofstream& output, Simulation& sim);
 
 		private:
 			// Private member data

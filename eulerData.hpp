@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstddef>
+#include <ostream>
 #include <vector>
 
 using std::size_t;
@@ -24,7 +25,7 @@ namespace fvm {
 	// Vector addition and subtraction.
 	QuantArray operator+(QuantArray a, QuantArray b);
 	QuantArray operator-(QuantArray a, QuantArray b);
-	// vector multiplication/division by scalar.
+	// Vector multiplication/division by scalar.
 	QuantArray operator*(double a, QuantArray u);
 	QuantArray operator*(QuantArray u, double a);
 	QuantArray operator/(QuantArray u, double a);
@@ -63,7 +64,6 @@ namespace fvm {
 
 			// EulerData accessors
 			// Getters
-			QuantArray& operator[](size_t i) { return data_[i]; }
 			size_t size() { return data_.size(); }
 			CellVector& data() { return data_; }
 			EulerDataMode mode() { return mode_; }
@@ -71,6 +71,9 @@ namespace fvm {
 			// Setters
 			void setQuantity(size_t i, QuantArray newValues) { data_[i] = newValues; }
 			void setMode(EulerDataMode want);
+
+			// Operator overloads.
+			QuantArray& operator[](size_t i) { return data_[i]; }
 
 		private:
 			// Private member data
