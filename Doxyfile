@@ -877,7 +877,7 @@ WARN_AS_ERROR          = NO
 # See also: WARN_LINE_FORMAT
 # The default value is: $file:$line: $text.
 
-WARN_FORMAT            = "$file:$line: $text"
+WARN_FORMAT            = "$text"
 
 # In the $text part of the WARN_FORMAT command it is possible that a reference
 # to a more specific place is given. To make it easier to jump to this place
@@ -896,7 +896,7 @@ WARN_LINE_FORMAT       = "at line $line of file $file"
 # specified the warning and error messages are written to standard output
 # (stdout).
 
-WARN_LOGFILE           =
+WARN_LOGFILE           = undoc.md
 
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
