@@ -21,7 +21,6 @@ namespace fvm {
 		hllc
 	};
 
-
 	/** The main class that holds the input parameters of the simulation.
 	 * The simulation contains the parameters of the simulation as well as
 	 * the associated scheme, and flux expression being used.
@@ -43,7 +42,8 @@ namespace fvm {
 			Simulation(int nCells, double xStart, double xEnd, double tStart,
 					double tEnd, double cfl, double gamma,
 					std::function<double (double)> densityDist,
-					std::function<double (double)> velocityDist,
+					std::function<double (double)> velocityDistX,
+					std::function<double (double)> velocityDistY,
 					std::function<double (double)> pressureDist,
 					FluxScheme fluxScheme,
 					SlopeLimiter slType = SlopeLimiter::none);
@@ -77,7 +77,7 @@ namespace fvm {
 			void step();
 
 			// Operator overloads.
-			const QuantArray& operator[](size_t i) { return eulerData_[i]; }
+			const Cell& operator[](size_t i) { return eulerData_[i]; }
 			friend std::ofstream& operator<<(std::ofstream& output, Simulation& sim);
 
 		private:
@@ -102,12 +102,12 @@ namespace fvm {
 
 			// Private member functions
 			double calcTimeStep_();
-			QuantArray lfFlux_(const QuantArray& uLeft, const QuantArray& uRight);
-			QuantArray richtmyerFlux_(const QuantArray& uLeft, const QuantArray& uRight);
-			QuantArray forceFlux_(const QuantArray& uLeft, const QuantArray& uRight);
-			QuantArray hllcFlux_(const QuantArray& uLeft, const QuantArray& uRight);
-			QuantArray calcFlux_(const QuantArray& uLeft, const QuantArray& uRight);
-			QuantArray fluxExpr_(QuantArray u);
+			Cell lfFlux_(const Cell& uLeft, const Cell& uRight);
+			Cell richtmyerFlux_(const Cell& uLeft, const Cell& uRight);
+			Cell forceFlux_(const Cell& uLeft, const Cell& uRight);
+			Cell hllcFlux_(const Cell& uLeft, const Cell& uRight);
+			Cell calcFlux_(const Cell& uLeft, const Cell& uRight);
+			Cell fluxExpr_(Cell u);
 			// Wrappers around EulerData mode conversion function.
 			void setMode(EulerDataMode want) { eulerData_.setMode(want); }
 	};

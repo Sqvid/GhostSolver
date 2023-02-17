@@ -2,8 +2,8 @@
 
 namespace fvm {
 	// Operator overloads for QuantArray.
-	QuantArray operator+(QuantArray a, QuantArray b) {
-		QuantArray ans;
+	Cell operator+(Cell a, Cell b) {
+		Cell ans;
 
 		for (size_t i = 0; i < a.size(); ++i) {
 			ans[i] = a[i] + b[i];
@@ -12,8 +12,8 @@ namespace fvm {
 		return ans;
 	}
 
-	QuantArray operator-(QuantArray a, QuantArray b) {
-		QuantArray ans;
+	Cell operator-(Cell a, Cell b) {
+		Cell ans;
 
 		for (size_t i = 0; i < a.size(); ++i) {
 			ans[i] = a[i] - b[i];
@@ -22,8 +22,8 @@ namespace fvm {
 		return ans;
 	}
 
-	QuantArray operator*(double a, QuantArray u) {
-		QuantArray ans;
+	Cell operator*(double a, Cell u) {
+		Cell ans;
 
 		for (size_t i = 0; i < u.size(); ++i) {
 			ans[i] = a * u[i];
@@ -32,8 +32,8 @@ namespace fvm {
 		return ans;
 	}
 
-	QuantArray operator*(QuantArray u, double a) {
-		QuantArray ans;
+	Cell operator*(Cell u, double a) {
+		Cell ans;
 
 		for (size_t i = 0; i < u.size(); ++i) {
 			ans[i] = a * u[i];
@@ -42,8 +42,8 @@ namespace fvm {
 		return ans;
 	}
 
-	QuantArray operator/(QuantArray u, double a) {
-		QuantArray ans;
+	Cell operator/(Cell u, double a) {
+		Cell ans;
 
 		for (size_t i = 0; i < u.size(); ++i) {
 			ans[i] = u[i] / a;
@@ -71,33 +71,46 @@ namespace fvm {
 
 	void EulerData::makeConserved_() {
 		int dIndex = static_cast<int>(PrimitiveQuant::density);
-		int vIndex = static_cast<int>(PrimitiveQuant::velocity);
+		int vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
+		int vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
 		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
 		for (size_t i = 0; i < data_.size(); ++i) {
+			auto rho = data_[i][dIndex];
+			auto p = data_[i][pIndex];
+
 			// Convert velocity to momentum.
-			data_[i][vIndex] *= data_[i][dIndex];
+			data_[i][vIndexX] *= rho;
+			data_[i][vIndexY] *= rho;
+
+			auto rhoVX = data_[i][vIndexX];
+			auto rhoVY = data_[i][vIndexY];
 
 			// Convert pressure to energy.
-			data_[i][pIndex] = (data_[i][pIndex] / (gamma_ - 1))
-				+ 0.5 * ((data_[i][vIndex] * data_[i][vIndex]) / data_[i][dIndex]);
+			data_[i][pIndex] = (p / (gamma_ - 1)) + 0.5 * ((rhoVX*rhoVX + rhoVY*rhoVY) / rho);
 		}
 
 		mode_ = EulerDataMode::conserved;
 	}
 
 	void EulerData::makePrimitive_() {
-		int dIndex = static_cast<size_t>(ConservedQuant::density);
-		int moIndex = static_cast<int>(ConservedQuant::momentum);
+		int dIndex = static_cast<int>(ConservedQuant::density);
+		int moIndexX = static_cast<int>(ConservedQuant::momentumX);
+		int moIndexY = static_cast<int>(ConservedQuant::momentumY);
 		int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		for (size_t i = 0; i < data_.size(); ++i) {
+			auto d = data_[i][dIndex];
+			auto rhoVX = data_[i][moIndexX];
+			auto rhoVY = data_[i][moIndexY];
+			auto e = data_[i][eIndex];
+
 			// Convert energy to pressure.
-			data_[i][eIndex] = (gamma_ - 1) * (data_[i][eIndex]
-					- 0.5 * ((data_[i][moIndex] * data_[i][moIndex]) / data_[i][dIndex]));
+			data_[i][eIndex] = (gamma_ - 1) * (e - 0.5 * ((rhoVX*rhoVX + rhoVY*rhoVY) / d));
 
 			// Convert momentum to velocity.
-			data_[i][moIndex] /= data_[i][dIndex];
+			data_[i][moIndexX] /= d;
+			data_[i][moIndexY] /= d;
 		}
 
 		mode_ = EulerDataMode::primitive;

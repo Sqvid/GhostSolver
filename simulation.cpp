@@ -12,7 +12,8 @@ namespace fvm {
 	Simulation::Simulation(int nCells, double xStart, double xEnd,
 			double tStart, double tEnd, double cfl, double gamma,
 			std::function<double (double)> densityDist,
-			std::function<double (double)> velocityDist,
+			std::function<double (double)> velocityDistX,
+			std::function<double (double)> velocityDistY,
 			std::function<double (double)> pressureDist,
 			FluxScheme fluxScheme,
 			SlopeLimiter slType)
@@ -48,16 +49,19 @@ namespace fvm {
 
 		// Indices for primitive quantities.
 		int dIndex = static_cast<int>(PrimitiveQuant::density);
-		int vIndex = static_cast<int>(PrimitiveQuant::velocity);
+		int vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
+		int vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
 		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
 		// Populate the solution space with the initail function.
 		for (size_t i = 0; i < eulerData_.data().size(); ++i) {
 			// ith cell centre
 			double x = xStart_ + (i - 0.5) * dx_;
-			QuantArray cellValues;
+
+			Cell cellValues;
 			cellValues[dIndex] = densityDist(x);
-			cellValues[vIndex] = velocityDist(x);
+			cellValues[vIndexX] = velocityDistX(x);
+			cellValues[vIndexY] = velocityDistY(x);
 			cellValues[pIndex] = pressureDist(x);
 
 			eulerData_.setQuantity(i, cellValues);
@@ -87,18 +91,18 @@ namespace fvm {
 
 			// Half-timestep evolution.
 			for (std::size_t i = 0; i < nCells_; ++i) {
-				QuantArray& uLeft = lSlopeIfaces_[i];
-				QuantArray& uRight = rSlopeIfaces_[i];
+				Cell& uLeft = lSlopeIfaces_[i];
+				Cell& uRight = rSlopeIfaces_[i];
 
-				QuantArray cellChange = 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
+				Cell cellChange = 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
 
 				uLeft = uLeft - cellChange;
 				uRight = uRight - cellChange;
 			}
 
-			for (size_t i= 0; i < nCells_ - 1; ++i) {
-				QuantArray uRight = rSlopeIfaces_[i];
-				QuantArray uNextLeft = lSlopeIfaces_[i + 1];
+			for (size_t i = 0; i < nCells_ - 1; ++i) {
+				Cell uRight = rSlopeIfaces_[i];
+				Cell uNextLeft = lSlopeIfaces_[i + 1];
 
 				flux_[i + 1] = calcFlux_(uRight, uNextLeft);
 			}
@@ -111,8 +115,8 @@ namespace fvm {
 		}
 
 		for (unsigned int i = 1; i <= nCells_; ++i) {
-			QuantArray cellValues = eulerData_[i];
-			QuantArray newValues = cellValues - (dt_/dx_) * (flux_[i] - flux_[i - 1]);
+			Cell cellValues = eulerData_[i];
+			Cell newValues = cellValues - (dt_/dx_) * (flux_[i] - flux_[i - 1]);
 
 			eulerData_.setQuantity(i, newValues);
 		}
@@ -132,15 +136,15 @@ namespace fvm {
 
 			// Indices of primitive quantities.
 			int dIndex = static_cast<int>(PrimitiveQuant::density);
-			int vIndex = static_cast<int>(PrimitiveQuant::velocity);
+			int vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
 			int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
 			// Values of primitive quantities.
-			QuantArray cellValues = sim[i];
+			Cell cellValues = sim[i];
 
 			output << x << " "
 				<< cellValues[dIndex] << " "
-				<< cellValues[vIndex] << " "
+				<< cellValues[vIndexX] << " "
 				<< cellValues[pIndex] << "\n";
 		}
 
@@ -157,21 +161,25 @@ namespace fvm {
 
 		// Indices for conserved quantities.
 		int dIndex = static_cast<int>(ConservedQuant::density);
-		int moIndex = static_cast<int>(ConservedQuant::momentum);
+		int moIndexX = static_cast<int>(ConservedQuant::momentumX);
+		int moIndexY = static_cast<int>(ConservedQuant::momentumY);
 		int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		for (size_t i = 1; i < eulerData_.size(); ++i) {
-			QuantArray cellValues = eulerData_[i];
+			Cell cellValues = eulerData_[i];
 			double rho = cellValues[dIndex];
-			double rhoV = cellValues[moIndex];
+			double rhoVX = cellValues[moIndexX];
+			double rhoVY = cellValues[moIndexY];
 			double e = cellValues[eIndex];
 
 			// v = velocity + sound speed
-			double v = std::fabs(rhoV / rho)
-				+ std::sqrt((gamma_*(gamma_ - 1)*(e - 0.5*((rhoV*rhoV) / rho))) / rho);
+			auto cSound = std::sqrt((gamma_*(gamma_ - 1)
+						*(e - 0.5*((rhoVX*rhoVX + rhoVY*rhoVY) / rho))) / rho);
 
-			if (v > vMax) {
-				vMax = v;
+			auto vX = std::fabs(rhoVX / rho) + cSound;
+
+			if (vX > vMax) {
+				vMax = vX;
 			}
 		}
 
@@ -179,53 +187,56 @@ namespace fvm {
 	}
 
 	// Return the fluxes for the conserved quantities.
-	QuantArray Simulation::fluxExpr_(QuantArray u) {
-		QuantArray flux;
+	Cell Simulation::fluxExpr_(Cell u) {
+		Cell flux;
 
 		int dIndex = static_cast<int>(ConservedQuant::density);
-		int moIndex = static_cast<int>(ConservedQuant::momentum);
+		int moIndexX = static_cast<int>(ConservedQuant::momentumX);
+		int moIndexY = static_cast<int>(ConservedQuant::momentumY);
 		int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		double rho = u[dIndex];
-		double rhoV = u[moIndex];
+		double rhoVX = u[moIndexX];
+		double rhoVY = u[moIndexY];
 		double e = u[eIndex];
-		double p = (gamma_ - 1) * (e - (rhoV*rhoV)/(2*rho));
+		double p = (gamma_ - 1) * (e - (rhoVX*rhoVX)/(2*rho));
 
-		flux[dIndex] = rhoV;
-		flux[moIndex] = (rhoV*rhoV)/rho + p;
-		flux[eIndex] = (e + p) * (rhoV / rho);
+		flux[dIndex] = rhoVX;
+		flux[moIndexX] = (rhoVX * rhoVX)/rho + p;
+		flux[moIndexY] = (rhoVX * rhoVY)/rho;
+		flux[eIndex] = (e + p) * (rhoVX / rho);
 
 		return flux;
 	}
 
 	// Lax-Friedrichs flux function.
-	QuantArray Simulation::lfFlux_(const QuantArray& uLeft, const QuantArray& uRight) {
+	Cell Simulation::lfFlux_(const Cell& uLeft, const Cell& uRight) {
 		return 0.5 * (dx_/dt_) * (uLeft - uRight)
 			+ 0.5 * (fluxExpr_(uRight) + fluxExpr_(uLeft));
 	}
 
 	// Richtmeyer flux function.
-	QuantArray Simulation::richtmyerFlux_(const QuantArray& uLeft, const QuantArray& uRight) {
-		QuantArray halfStepUpdate =
+	Cell Simulation::richtmyerFlux_(const Cell& uLeft, const Cell& uRight) {
+		Cell halfStepUpdate =
 			0.5 * (uLeft + uRight)
 			- 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
 
 		return fluxExpr_(halfStepUpdate);
 	}
 
-	QuantArray Simulation::forceFlux_(const QuantArray& uLeft, const QuantArray& uRight) {
+	Cell Simulation::forceFlux_(const Cell& uLeft, const Cell& uRight) {
 		return 0.5 * (lfFlux_(uLeft, uRight) + richtmyerFlux_(uLeft, uRight));
 	}
 
 	// @brief Helper function to convert QuantArray variables to primitive form.
 	// @note Useful for Riemann-based schemes.
 	// @warn Does not check original state of variables. Use with caution!
-	QuantArray makePrimQuants(const QuantArray& u, const double gamma) {
-		QuantArray prim;
+	Cell makePrimQuants(const Cell& u, const double gamma) {
+		Cell prim;
 		prim = u;
 
 		int dIndex = static_cast<size_t>(ConservedQuant::density);
-		int moIndex = static_cast<int>(ConservedQuant::momentum);
+		int moIndex = static_cast<int>(ConservedQuant::momentumX);
 		int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		// Convert energy to pressure.
@@ -238,16 +249,16 @@ namespace fvm {
 		return prim;
 	}
 
-	QuantArray Simulation::hllcFlux_(const QuantArray& uLeft, const QuantArray& uRight) {
-		QuantArray flux;
+	Cell Simulation::hllcFlux_(const Cell& uLeft, const Cell& uRight) {
+		Cell flux;
 
 		// Make primitive version copies of the given cell values.
-		QuantArray primL = makePrimQuants(uLeft, gamma_);
-		QuantArray primR = makePrimQuants(uRight, gamma_);
+		Cell primL = makePrimQuants(uLeft, gamma_);
+		Cell primR = makePrimQuants(uRight, gamma_);
 
 		// Indices for primitive quantities.
 		int dIndex = static_cast<int>(PrimitiveQuant::density);
-		int vIndex = static_cast<int>(PrimitiveQuant::velocity);
+		int vIndex = static_cast<int>(PrimitiveQuant::velocityX);
 		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
 		// Index for energy.
@@ -279,15 +290,15 @@ namespace fvm {
 			flux = fluxExpr_(uLeft);
 
 		} else if (sStar >= 0) {
-			QuantArray hllcL = dL * ((sL - vL) / (sL - sStar))
-					* QuantArray({1, sStar,
+			Cell hllcL = dL * ((sL - vL) / (sL - sStar))
+					* Cell({1, sStar,
 					uLeft[eIndex]/dL + (sStar - vL)*(sStar + pL/(dL * (sL - vL)))});
 
 			flux = fluxExpr_(uLeft) + sL * (hllcL - uLeft);
 
 		} else if (sR >= 0) {
-			QuantArray hllcR = dR * ((sR - vR) / (sR - sStar))
-					* QuantArray({1, sStar,
+			Cell hllcR = dR * ((sR - vR) / (sR - sStar))
+					* Cell({1, sStar,
 					uRight[eIndex]/dR + (sStar - vR)*(sStar + pR/(dR * (sR - vR)))});
 
 			flux = fluxExpr_(uRight) + sR * (hllcR - uRight);
@@ -300,8 +311,8 @@ namespace fvm {
 	}
 
 	// Return the appropriate value for the given cell, flux scheme, and flux expression.
-	QuantArray Simulation::calcFlux_(const QuantArray& uLeft, const QuantArray& uRight) {
-		QuantArray flux;
+	Cell Simulation::calcFlux_(const Cell& uLeft, const Cell& uRight) {
+		Cell flux;
 
 		switch (fluxScheme_) {
 			case FluxScheme::laxFriedrichs:

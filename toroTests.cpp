@@ -84,3 +84,9 @@ double test5Velocity(double x) {
 double test5Pressure(double x) {
 	return x <= 0.5 ? 460.894 : 46.0950;
 }
+
+double constantVY(double y) {
+	y = 0;
+
+	return y;
+}

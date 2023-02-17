@@ -39,4 +39,6 @@ double test5Density(double x);
 double test5Velocity(double x);
 double test5Pressure(double x);
 
+double constantVY(double y);
+
 #endif

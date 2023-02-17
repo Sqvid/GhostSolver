@@ -103,7 +103,7 @@ namespace fvm {
 		return limited;
 	}
 
-	void linearReconst(EulerData& eulerData, CellVector& lIfaces, CellVector& rIfaces, SlopeLimiter slType) {
+	void internal::linearReconst(EulerData& eulerData, CellVector& lIfaces, CellVector& rIfaces, SlopeLimiter slType) {
 		// Alias the numerical data.
 		eulerData.setMode(EulerDataMode::conserved);
 		CellVector& u = eulerData.data();
@@ -114,10 +114,10 @@ namespace fvm {
 
 		// Calculate reconstructed interface values.
 		for (size_t i = 1; i < u.size() - 1; i++) {
-			QuantArray deltaLeft = u[i] - u[i - 1];
-			QuantArray deltaRight = u[i + 1] - u[i];
+			Cell deltaLeft = u[i] - u[i - 1];
+			Cell deltaRight = u[i + 1] - u[i];
 
-			QuantArray delta = 0.5 * (deltaLeft + deltaRight);
+			Cell delta = 0.5 * (deltaLeft + deltaRight);
 
 			double r;
 
@@ -127,8 +127,8 @@ namespace fvm {
 				r = deltaLeft[eIndex] / deltaRight[eIndex];
 			}
 
-			QuantArray uLeft = u[i] - 0.5 * delta * limit(r, slType);
-			QuantArray uRight = u[i] + 0.5 * delta * limit(r, slType);
+			Cell uLeft = u[i] - 0.5 * delta * limit(r, slType);
+			Cell uRight = u[i] + 0.5 * delta * limit(r, slType);
 
 			lIfaces[i - 1] = uLeft;
 			rIfaces[i - 1] = uRight;

@@ -14,31 +14,33 @@ namespace fvm {
 	 * pressure), or conserved (such as density, momentum, and energy).
 	 * @brief Measured physical quantities within a cell.
 	 */
-	typedef std::array<double, 3> QuantArray;
+	typedef std::array<double, 4> Cell;
 	// The cell vector stores the QuantArrays for every cell.
 	/** Vector of cell values.
 	 * @brief Vector of cell values.
 	 */
-	typedef std::vector<QuantArray> CellVector;
+	typedef std::vector<Cell> CellVector;
 
 	// Operator overloads for QuantArray.
 	// Vector addition and subtraction.
-	QuantArray operator+(QuantArray a, QuantArray b);
-	QuantArray operator-(QuantArray a, QuantArray b);
+	Cell operator+(Cell a, Cell b);
+	Cell operator-(Cell a, Cell b);
 	// Vector multiplication/division by scalar.
-	QuantArray operator*(double a, QuantArray u);
-	QuantArray operator*(QuantArray u, double a);
-	QuantArray operator/(QuantArray u, double a);
+	Cell operator*(double a, Cell u);
+	Cell operator*(Cell u, double a);
+	Cell operator/(Cell u, double a);
 
 	enum class PrimitiveQuant {
 		density = 0,
-		velocity,
+		velocityX,
+		velocityY,
 		pressure
 	};
 
 	enum class ConservedQuant {
 		density = 0,
-		momentum,
+		momentumX,
+		momentumY,
 		energy
 	};
 
@@ -69,11 +71,11 @@ namespace fvm {
 			EulerDataMode mode() { return mode_; }
 
 			// Setters
-			void setQuantity(size_t i, QuantArray newValues) { data_[i] = newValues; }
+			void setQuantity(size_t i, Cell newValues) { data_[i] = newValues; }
 			void setMode(EulerDataMode want);
 
 			// Operator overloads.
-			QuantArray& operator[](size_t i) { return data_[i]; }
+			Cell& operator[](size_t i) { return data_[i]; }
 
 		private:
 			// Private member data
