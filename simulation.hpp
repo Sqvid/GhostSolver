@@ -18,7 +18,7 @@ namespace fvm {
 		laxFriedrichs,
 		richtmyer,
 		force,
-		hllc
+		//hllc
 	};
 
 	/** The main class that holds the input parameters of the simulation.
@@ -77,35 +77,38 @@ namespace fvm {
 			void step();
 
 			// Operator overloads.
-			const Cell& operator[](size_t i) { return eulerData_[i]; }
+			const CellVector& operator[](size_t i) { return eulerData_[i]; }
 			friend std::ofstream& operator<<(std::ofstream& output, Simulation& sim);
 
 		private:
 			// Private member data
-			unsigned int nCells_;
+			int nCells_;
 			double xStart_;
 			double xEnd_;
+			double yStart_;
+			double yEnd_;
 			double tStart_;
 			double tEnd_;
 			double tNow_;
 			double cfl_;
 			double dx_;
+			double dy_;
 			double dt_;
 			double gamma_;
 			FluxScheme fluxScheme_;
 			SlopeLimiter slType_;
 			EulerData eulerData_;
-			CellVector flux_;
+			Grid flux_;
 			// Left and right reconstructed interface values.
-			CellVector lSlopeIfaces_;
-			CellVector rSlopeIfaces_;
+			//CellVector lSlopeIfaces_;
+			//CellVector rSlopeIfaces_;
 
 			// Private member functions
 			double calcTimeStep_();
 			Cell lfFlux_(const Cell& uLeft, const Cell& uRight);
 			Cell richtmyerFlux_(const Cell& uLeft, const Cell& uRight);
 			Cell forceFlux_(const Cell& uLeft, const Cell& uRight);
-			Cell hllcFlux_(const Cell& uLeft, const Cell& uRight);
+			//Cell hllcFlux_(const Cell& uLeft, const Cell& uRight);
 			Cell calcFlux_(const Cell& uLeft, const Cell& uRight);
 			Cell fluxExpr_(Cell u);
 			// Wrappers around EulerData mode conversion function.

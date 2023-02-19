@@ -32,20 +32,34 @@ namespace fvm {
 		nCells_ = nCells;
 		xStart_ = xStart;
 		xEnd_ = xEnd;
+		yStart_ = xStart_;
+		yEnd_ = xEnd_;
 		tStart_ = tStart;
 		tEnd_ = tEnd;
 		tNow_ = tStart;
 		cfl_ = cfl;
 		dx_ = (xEnd_ - xStart_) / nCells_;
+		dy_ = dx_;
 		dt_ = 0;
 		gamma_ = gamma;
 		fluxScheme_ = fluxScheme;
 		slType_ = slType;
 
+		// Resize data and flux grids in x.
 		eulerData_.data().resize(nCells_ + 2);
 		flux_.resize(nCells_ + 1);
-		lSlopeIfaces_.resize(nCells_);
-		rSlopeIfaces_.resize(nCells_);
+
+		// Resize data and flux grids in y.
+		for (int i = 0; i < nCells_ + 2; ++i) {
+			if (i < nCells_ + 1) {
+				flux_[i].resize(nCells_ + 1);
+			}
+
+			eulerData_.data()[i].resize(nCells_ + 2);
+		}
+
+		//lSlopeIfaces_.resize(nCells_);
+		//rSlopeIfaces_.resize(nCells_);
 
 		// Indices for primitive quantities.
 		int dIndex = static_cast<int>(PrimitiveQuant::density);
@@ -55,21 +69,29 @@ namespace fvm {
 
 		// Populate the solution space with the initail function.
 		for (size_t i = 0; i < eulerData_.data().size(); ++i) {
-			// ith cell centre
+			// ith cell centre x-position.
 			double x = xStart_ + (i - 0.5) * dx_;
 
-			Cell cellValues;
-			cellValues[dIndex] = densityDist(x);
-			cellValues[vIndexX] = velocityDistX(x);
-			cellValues[vIndexY] = velocityDistY(x);
-			cellValues[pIndex] = pressureDist(x);
+			for (size_t j = 0; j < eulerData_.data()[0].size(); ++j) {
+				// ith cell centre y-position.
+				double y = yStart_ + (j - 0.5) * dy_;
 
-			eulerData_.setQuantity(i, cellValues);
+				Cell cellValues;
+				cellValues[dIndex] = densityDist(x);
+				cellValues[vIndexX] = velocityDistX(x);
+				cellValues[vIndexY] = velocityDistY(y);
+				cellValues[pIndex] = pressureDist(x);
+
+				eulerData_.setQuantity(i, j, cellValues);
+			}
 		}
 
 		// Apply transmissive boundary conditions.
-		eulerData_.setQuantity(0, eulerData_[1]);
-		eulerData_.setQuantity(nCells_ + 1, eulerData_[nCells_]);
+		for (int j = 1; j < nCells; ++j) {
+			// x-boundaries.
+			eulerData_.setQuantity(0, j, eulerData_[1][j]);
+			eulerData_.setQuantity(nCells_ + 1, j, eulerData_[nCells_][j]);
+		}
 	}
 
 	// Evolve the simulation one timestep.
@@ -81,7 +103,7 @@ namespace fvm {
 		tNow_ += dt_;
 
 		// If slope limiting has been requested.
-		if (slType_ != SlopeLimiter::none) {
+		/*if (slType_ != SlopeLimiter::none) {
 			// FIXME: Calculate these from reconstructed boundary
 			// cells.
 			flux_[0] = calcFlux_(eulerData_[0], eulerData_[1]);
@@ -108,22 +130,31 @@ namespace fvm {
 			}
 
 		} else {
+		*/
 			// Compute flux vector.
-			for (size_t i = 0; i < flux_.size(); ++i) {
-				flux_[i] = calcFlux_(eulerData_[i], eulerData_[i + 1]);
+		for (size_t i = 0; i < flux_.size(); ++i) {
+			for (size_t j = 0; j < flux_[0].size(); ++j) {
+				// x-fluxes.
+				flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + 1][j]);
+			}
+		}
+		//}
+
+		// Apply finite difference calculations.
+		for (int i = 1; i < nCells_ + 1; ++i) {
+			for (int j = 1; j < nCells_ + 1; ++j) {
+				Cell cell = eulerData_[i][j];
+				Cell newCell = cell - (dt_/dx_) * (flux_[i][j] - flux_[i - 1][j]);
+
+				eulerData_.setQuantity(i, j, newCell);
 			}
 		}
 
-		for (unsigned int i = 1; i <= nCells_; ++i) {
-			Cell cellValues = eulerData_[i];
-			Cell newValues = cellValues - (dt_/dx_) * (flux_[i] - flux_[i - 1]);
-
-			eulerData_.setQuantity(i, newValues);
+		// Apply boundary conditions in x.
+		for (int j = 1; j < nCells_ + 1; ++j) {
+			eulerData_.setQuantity(0, j, eulerData_[1][j]);
+			eulerData_.setQuantity(nCells_ + 1, j, eulerData_[nCells_][j]);
 		}
-
-		// Apply boundary conditions.
-		eulerData_.setQuantity(0, eulerData_[1]);
-		eulerData_.setQuantity(nCells_ + 1, eulerData_[nCells_]);
 	}
 
 	// Output simulation data in Gnuplot format.
@@ -131,21 +162,30 @@ namespace fvm {
 		// Output data in primitive form.
 		sim.eulerData_.setMode(EulerDataMode::primitive);
 
-		for (size_t i = 0; i < sim.nCells_; ++i) {
-			double x = sim.xStart_ + i * sim.dx_;
+		for (int i = 1; i < sim.nCells_ + 1; ++i) {
+			double x = sim.xStart_ + (i - 1) * sim.dx_;
 
-			// Indices of primitive quantities.
-			int dIndex = static_cast<int>(PrimitiveQuant::density);
-			int vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
-			int pIndex = static_cast<int>(PrimitiveQuant::pressure);
+			for (int j = 1; j < sim.nCells_ + 1; ++j) {
+				double y = sim.yStart_ + (j - 1) * sim.dy_;
 
-			// Values of primitive quantities.
-			Cell cellValues = sim[i];
+				// Indices of primitive quantities.
+				int dIndex = static_cast<int>(PrimitiveQuant::density);
+				int vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
+				int vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
+				int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
-			output << x << " "
-				<< cellValues[dIndex] << " "
-				<< cellValues[vIndexX] << " "
-				<< cellValues[pIndex] << "\n";
+				// Values of primitive quantities.
+				Cell cell = sim[i][j];
+
+				output << x << " "
+					<< y << " "
+					<< cell[dIndex] << " "
+					<< cell[vIndexX] << " "
+					<< cell[vIndexY] << " "
+					<< cell[pIndex] << "\n";
+			}
+
+			output << "\n";
 		}
 
 		return output;
@@ -153,7 +193,7 @@ namespace fvm {
 
 	// Private member function definitions:
 
-	// Heuristic to find a timestep to keep cell updates stable.
+	// Heuristic to find a timestep to keep cell updatas stable.
 	// Timestep is computed such that it is stable for the fastest
 	// information wave.
 	double Simulation::calcTimeStep_() {
@@ -165,21 +205,24 @@ namespace fvm {
 		int moIndexY = static_cast<int>(ConservedQuant::momentumY);
 		int eIndex = static_cast<int>(ConservedQuant::energy);
 
-		for (size_t i = 1; i < eulerData_.size(); ++i) {
-			Cell cellValues = eulerData_[i];
-			double rho = cellValues[dIndex];
-			double rhoVX = cellValues[moIndexX];
-			double rhoVY = cellValues[moIndexY];
-			double e = cellValues[eIndex];
+		for (int i = 1; i < nCells_ + 1; ++i) {
+			for (int j = 1; j < nCells_ + 1; ++j) {
+				Cell cell = eulerData_[i][j];
 
-			// v = velocity + sound speed
-			auto cSound = std::sqrt((gamma_*(gamma_ - 1)
-						*(e - 0.5*((rhoVX*rhoVX + rhoVY*rhoVY) / rho))) / rho);
+				double rho = cell[dIndex];
+				double rhoVX = cell[moIndexX];
+				double rhoVY = cell[moIndexY];
+				double e = cell[eIndex];
 
-			auto vX = std::fabs(rhoVX / rho) + cSound;
+				// v = velocity + sound speed
+				auto cSound = std::sqrt((gamma_*(gamma_ - 1)
+							*(e - 0.5*((rhoVX*rhoVX + rhoVY*rhoVY) / rho))) / rho);
 
-			if (vX > vMax) {
-				vMax = vX;
+				auto vX = std::fabs(rhoVX / rho) + cSound;
+
+				if (vX > vMax) {
+					vMax = vX;
+				}
 			}
 		}
 
@@ -217,9 +260,10 @@ namespace fvm {
 
 	// Richtmeyer flux function.
 	Cell Simulation::richtmyerFlux_(const Cell& uLeft, const Cell& uRight) {
-		Cell halfStepUpdate =
-			0.5 * (uLeft + uRight)
-			- 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
+		//Cell halfStepUpdate = (0.5 * (uLeft + uRight)) - (0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft)));
+		Cell half1 = 0.5 * (uLeft + uRight);
+		Cell half2 = 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
+		Cell halfStepUpdate = half1 - half2;
 
 		return fluxExpr_(halfStepUpdate);
 	}
@@ -249,66 +293,66 @@ namespace fvm {
 		return prim;
 	}
 
-	Cell Simulation::hllcFlux_(const Cell& uLeft, const Cell& uRight) {
-		Cell flux;
+	//Cell Simulation::hllcFlux_(const Cell& uLeft, const Cell& uRight) {
+	//	Cell flux;
 
-		// Make primitive version copies of the given cell values.
-		Cell primL = makePrimQuants(uLeft, gamma_);
-		Cell primR = makePrimQuants(uRight, gamma_);
+	//	// Make primitive version copies of the given cell values.
+	//	Cell primL = makePrimQuants(uLeft, gamma_);
+	//	Cell primR = makePrimQuants(uRight, gamma_);
 
-		// Indices for primitive quantities.
-		int dIndex = static_cast<int>(PrimitiveQuant::density);
-		int vIndex = static_cast<int>(PrimitiveQuant::velocityX);
-		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
+	//	// Indices for primitive quantities.
+	//	int dIndex = static_cast<int>(PrimitiveQuant::density);
+	//	int vIndex = static_cast<int>(PrimitiveQuant::velocityX);
+	//	int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
-		// Index for energy.
-		int eIndex = static_cast<int>(ConservedQuant::energy);
+	//	// Index for energy.
+	//	int eIndex = static_cast<int>(ConservedQuant::energy);
 
-		// Alias quantities for convenience.
-		double dL = primL[dIndex];
-		double vL = primL[vIndex];
-		double pL = primL[pIndex];
+	//	// Alias quantities for convenience.
+	//	double dL = primL[dIndex];
+	//	double vL = primL[vIndex];
+	//	double pL = primL[pIndex];
 
-		double dR = primR[dIndex];
-		double vR = primR[vIndex];
-		double pR = primR[pIndex];
+	//	double dR = primR[dIndex];
+	//	double vR = primR[vIndex];
+	//	double pR = primR[pIndex];
 
-		double cSoundL = std::sqrt((gamma_ * pL) / dL);
-		double cSoundR = std::sqrt((gamma_ * pR) / dR);
+	//	double cSoundL = std::sqrt((gamma_ * pL) / dL);
+	//	double cSoundR = std::sqrt((gamma_ * pR) / dR);
 
-		// Find approximate left and right sound speeds.
-		double sPlus = std::max(std::fabs(vL) + cSoundL, std::fabs(vR) + cSoundR);
+	//	// Find approximate left and right sound speeds.
+	//	double sPlus = std::max(std::fabs(vL) + cSoundL, std::fabs(vR) + cSoundR);
 
-		double sL = -sPlus;
-		double sR = sPlus;
+	//	double sL = -sPlus;
+	//	double sR = sPlus;
 
-		// Approximate contact sound speed.
-		double sStar = (pR - pL + dL*vL*(sL - vL) - dR*vR*(sR - vR))
-					/ (dL*(sL - vL) - dR*(sR - vR));
+	//	// Approximate contact sound speed.
+	//	double sStar = (pR - pL + dL*vL*(sL - vL) - dR*vR*(sR - vR))
+	//				/ (dL*(sL - vL) - dR*(sR - vR));
 
-		if ( sL >= 0 ) {
-			flux = fluxExpr_(uLeft);
+	//	if ( sL >= 0 ) {
+	//		flux = fluxExpr_(uLeft);
 
-		} else if (sStar >= 0) {
-			Cell hllcL = dL * ((sL - vL) / (sL - sStar))
-					* Cell({1, sStar,
-					uLeft[eIndex]/dL + (sStar - vL)*(sStar + pL/(dL * (sL - vL)))});
+	//	} else if (sStar >= 0) {
+	//		Cell hllcL = dL * ((sL - vL) / (sL - sStar))
+	//				* Cell({1, sStar,
+	//				uLeft[eIndex]/dL + (sStar - vL)*(sStar + pL/(dL * (sL - vL)))});
 
-			flux = fluxExpr_(uLeft) + sL * (hllcL - uLeft);
+	//		flux = fluxExpr_(uLeft) + sL * (hllcL - uLeft);
 
-		} else if (sR >= 0) {
-			Cell hllcR = dR * ((sR - vR) / (sR - sStar))
-					* Cell({1, sStar,
-					uRight[eIndex]/dR + (sStar - vR)*(sStar + pR/(dR * (sR - vR)))});
+	//	} else if (sR >= 0) {
+	//		Cell hllcR = dR * ((sR - vR) / (sR - sStar))
+	//				* Cell({1, sStar,
+	//				uRight[eIndex]/dR + (sStar - vR)*(sStar + pR/(dR * (sR - vR)))});
 
-			flux = fluxExpr_(uRight) + sR * (hllcR - uRight);
+	//		flux = fluxExpr_(uRight) + sR * (hllcR - uRight);
 
-		} else {
-			flux = fluxExpr_(uRight);
-		}
+	//	} else {
+	//		flux = fluxExpr_(uRight);
+	//	}
 
-		return flux;
-	}
+	//	return flux;
+	//}
 
 	// Return the appropriate value for the given cell, flux scheme, and flux expression.
 	Cell Simulation::calcFlux_(const Cell& uLeft, const Cell& uRight) {
@@ -327,9 +371,9 @@ namespace fvm {
 				flux = forceFlux_(uLeft, uRight);
 				break;
 
-			case FluxScheme::hllc:
-				flux = hllcFlux_(uLeft, uRight);
-				break;
+			//case FluxScheme::hllc:
+			//	flux = hllcFlux_(uLeft, uRight);
+			//	break;
 		}
 
 		return flux;

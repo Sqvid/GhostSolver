@@ -16,7 +16,7 @@ void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
 		sim.step();
 		++nFrame;
 
-		if (nFrame % 3 == 0) {
+		if (nFrame % 5 == 0) {
 			// Change variables back to primitive for output.
 			output << sim << "\n\n";
 		}

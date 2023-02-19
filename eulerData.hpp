@@ -15,13 +15,13 @@ namespace fvm {
 	 * @brief Measured physical quantities within a cell.
 	 */
 	typedef std::array<double, 4> Cell;
-	// The cell vector stores the QuantArrays for every cell.
-	/** Vector of cell values.
+	/** Vector of cells.
 	 * @brief Vector of cell values.
 	 */
 	typedef std::vector<Cell> CellVector;
+	typedef std::vector<CellVector> Grid;
 
-	// Operator overloads for QuantArray.
+	// Operator overloads for Cell.
 	// Vector addition and subtraction.
 	Cell operator+(Cell a, Cell b);
 	Cell operator-(Cell a, Cell b);
@@ -66,21 +66,22 @@ namespace fvm {
 
 			// EulerData accessors
 			// Getters
-			size_t size() { return data_.size(); }
-			CellVector& data() { return data_; }
+			size_t xSize() { return data_.size(); }
+			size_t ySize() { return data_[0].size(); }
+			Grid& data() { return data_; }
 			EulerDataMode mode() { return mode_; }
 
 			// Setters
-			void setQuantity(size_t i, Cell newValues) { data_[i] = newValues; }
+			void setQuantity(size_t i, size_t j, Cell newValues) { data_[i][j] = newValues; }
 			void setMode(EulerDataMode want);
 
 			// Operator overloads.
-			Cell& operator[](size_t i) { return data_[i]; }
+			CellVector& operator[](size_t i) { return data_[i]; }
 
 		private:
 			// Private member data
 			double gamma_;
-			CellVector data_;
+			Grid data_;
 			EulerDataMode mode_;
 			void makeConserved_();
 			void makePrimitive_();

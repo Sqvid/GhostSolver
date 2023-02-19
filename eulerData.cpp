@@ -76,21 +76,23 @@ namespace fvm {
 		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
 		for (size_t i = 0; i < data_.size(); ++i) {
-			auto rho = data_[i][dIndex];
-			auto p = data_[i][pIndex];
+			for (size_t j = 0; j < data_.size(); ++j) {
+				auto rho = data_[i][j][dIndex];
+				auto p = data_[i][j][pIndex];
 
-			// Convert velocity to momentum.
-			data_[i][vIndexX] *= rho;
-			data_[i][vIndexY] *= rho;
+				// Convert velocity to momentum.
+				data_[i][j][vIndexX] *= rho;
+				data_[i][j][vIndexY] *= rho;
 
-			auto rhoVX = data_[i][vIndexX];
-			auto rhoVY = data_[i][vIndexY];
+				auto rhoVX = data_[i][j][vIndexX];
+				auto rhoVY = data_[i][j][vIndexY];
 
-			// Convert pressure to energy.
-			data_[i][pIndex] = (p / (gamma_ - 1)) + 0.5 * ((rhoVX*rhoVX + rhoVY*rhoVY) / rho);
+				// Convert pressure to energy.
+				data_[i][j][pIndex] = (p / (gamma_ - 1)) + 0.5 * ((rhoVX*rhoVX + rhoVY*rhoVY) / rho);
+			}
+
+			mode_ = EulerDataMode::conserved;
 		}
-
-		mode_ = EulerDataMode::conserved;
 	}
 
 	void EulerData::makePrimitive_() {
@@ -99,20 +101,22 @@ namespace fvm {
 		int moIndexY = static_cast<int>(ConservedQuant::momentumY);
 		int eIndex = static_cast<int>(ConservedQuant::energy);
 
-		for (size_t i = 0; i < data_.size(); ++i) {
-			auto d = data_[i][dIndex];
-			auto rhoVX = data_[i][moIndexX];
-			auto rhoVY = data_[i][moIndexY];
-			auto e = data_[i][eIndex];
+		for (size_t i = 0; i < this->xSize(); ++i) {
+			for (size_t j = 0; j < this->ySize(); ++j) {
+				auto d = data_[i][j][dIndex];
+				auto rhoVX = data_[i][j][moIndexX];
+				auto rhoVY = data_[i][j][moIndexY];
+				auto e = data_[i][j][eIndex];
 
-			// Convert energy to pressure.
-			data_[i][eIndex] = (gamma_ - 1) * (e - 0.5 * ((rhoVX*rhoVX + rhoVY*rhoVY) / d));
+				// Convert energy to pressure.
+				data_[i][j][eIndex] = (gamma_ - 1) * (e - 0.5 * ((rhoVX*rhoVX + rhoVY*rhoVY) / d));
 
-			// Convert momentum to velocity.
-			data_[i][moIndexX] /= d;
-			data_[i][moIndexY] /= d;
+				// Convert momentum to velocity.
+				data_[i][j][moIndexX] /= d;
+				data_[i][j][moIndexY] /= d;
+			}
+
+			mode_ = EulerDataMode::primitive;
 		}
-
-		mode_ = EulerDataMode::primitive;
 	}
 }
