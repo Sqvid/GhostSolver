@@ -4,7 +4,7 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor \
 	  -Wdouble-promotion -Wnull-dereference -Wmisleading-indentation \
 	  -Wduplicated-cond -Wformat=2 -g -O0
 LDFLAGS = -lm
-OPTFLAG = -O2
+OPTFLAG = -O3
 
 BIN = main
 
@@ -36,7 +36,7 @@ run:
 	./$(BIN)
 
 plot:
-	./*.plt
+	./*.plt 2> /dev/null
 
 docs:
 	doxygen Doxyfile
