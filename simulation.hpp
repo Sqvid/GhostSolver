@@ -111,13 +111,14 @@ namespace fvm {
 
 			// Private member functions
 			double calcTimeStep_();
+			void linearReconst_();
+			Cell fluxExpr_(Cell u);
 			Cell lfFlux_(const Cell& uLeft, const Cell& uRight);
 			Cell richtmyerFlux_(const Cell& uLeft, const Cell& uRight);
 			Cell forceFlux_(const Cell& uLeft, const Cell& uRight);
 			Cell hllcFlux_(const Cell& uLeft, const Cell& uRight);
 			Cell calcFlux_(const Cell& uLeft, const Cell& uRight);
-			Cell fluxExpr_(Cell u);
-			// Wrappers around EulerData mode conversion function.
+			// Wrapper around EulerData mode conversion function.
 			void setMode(EulerDataMode want) { eulerData_.setMode(want); }
 	};
 }

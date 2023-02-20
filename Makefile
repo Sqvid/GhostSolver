@@ -36,6 +36,7 @@ run:
 	./$(BIN)
 
 plot:
+	./$(BIN)
 	./*.plt 2> /dev/null
 
 docs:

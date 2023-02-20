@@ -109,7 +109,9 @@ namespace fvm {
 				flux_[nCells_][j] = calcFlux_(eulerData_[nCells_][j], eulerData_[nCells_ + 1][j]);
 			}
 
-			internal::linearReconst(eulerData_, lSlopeIfaces_, rSlopeIfaces_, slType_);
+			// Linearly reconstruct the data and store interface values in
+			// lSlopeIfaces_, and rSlopeIfaces_.
+			linearReconst_();
 
 			// Half-timestep evolution.
 			for (int i = 1; i < nCells_ + 1; ++i) {
@@ -232,6 +234,41 @@ namespace fvm {
 		}
 
 		return cfl_ * (dx_ / vMax);
+	}
+
+	// TODO: Move this function into Simulation class.
+	void Simulation::linearReconst_() {
+		// Alias the numerical data.
+		eulerData_.setMode(EulerDataMode::conserved);
+		Grid& u = eulerData_.data();
+
+		// Index for energy. This is the quantity we are going to limit
+		// on.
+		int eIndex = static_cast<int>(ConservedQuant::energy);
+
+		// Calculate reconstructed interface values.
+		for (size_t i = 1; i < u.size() - 1; ++i) {
+			for (size_t j = 1; j < u[0].size() - 1; ++j) {
+				Cell deltaLeft = u[i][j] - u[i - 1][j];
+				Cell deltaRight = u[i + 1][j] - u[i][j];
+
+				Cell delta = 0.5 * (deltaLeft + deltaRight);
+
+				double r;
+
+				if (std::fabs(deltaRight[eIndex]) < internal::slopeTolerence) {
+					r = 0;
+				} else {
+					r = deltaLeft[eIndex] / deltaRight[eIndex];
+				}
+
+				Cell uLeft = u[i][j] - 0.5 * delta * internal::limit(r, slType_);
+				Cell uRight = u[i][j] + 0.5 * delta * internal::limit(r, slType_);
+
+				lSlopeIfaces_[i][j] = uLeft;
+				rSlopeIfaces_[i][j] = uRight;
+			}
+		}
 	}
 
 	// Return the fluxes for the conserved quantities.

@@ -17,17 +17,14 @@ namespace fvm {
 
 	// Not intended for the end-user.
 	namespace internal {
-		/** @brief Finds a linear reconstruction of #EulerData, and fills #lIfaces
-		 * and #rIfaces with the interface values.
-		 *
-		 * @param eulerData Original piecewise volume-averaged data.
-		 * @param lIfaces Reference to a CellVector in which to store left-interface
-		 * values.
-		 * @param rIfaces Reference to a CellVector in which to store
-		 * right-interface values.
-		 * @param the type of slope-limiter to use.
-		 */
-		void linearReconst(EulerData& eulerData, Grid& lIfaces, Grid& rIfaces, SlopeLimiter slType);
+		const double slopeTolerence = 0.00001;
+
+		double minbee(double r);
+		double superbee(double r);
+		double vanAlbada(double r);
+		double vanLeer(double r);
+
+		double limit(double r, SlopeLimiter slType);
 	}
 }
 
