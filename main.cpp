@@ -29,27 +29,23 @@ int main(void) {
 	try {
 		fvm::Simulation test1(100, 0, 1, 0, 0.25, 0.8, 1.4,
 				&test1Density, &test1Velocity, &constantVY, &test1Pressure,
-				fvm::FluxScheme::force, fvm::SlopeLimiter::none);
+				fvm::FluxScheme::hllc, fvm::SlopeLimiter::superbee);
 
-		fvm::Simulation test2(100, 0, 1, 0, 0.25, 0.8, 1.4,
-				&test1Density, &test1Velocity, &constantVY, &test1Pressure,
-				fvm::FluxScheme::hllc, fvm::SlopeLimiter::none);
-
-		//fvm::Simulation test2(100, 0, 1, 0, 0.150, 0.8, 1.4,
-		//		&test2Density, &test2Velocity, &constantVY, &test2Pressure,
-		//		fvm::FluxScheme::force, fvm::SlopeLimiter::none);
+		fvm::Simulation test2(100, 0, 1, 0, 0.150, 0.8, 1.4,
+				&test2Density, &test2Velocity, &constantVY, &test2Pressure,
+				fvm::FluxScheme::hllc, fvm::SlopeLimiter::superbee);
 
 		fvm::Simulation test3(100, 0, 1, 0, 0.012, 0.8, 1.4,
 				&test3Density, &test3Velocity, &constantVY, &test3Pressure,
-				fvm::FluxScheme::force, fvm::SlopeLimiter::none);
+				fvm::FluxScheme::hllc, fvm::SlopeLimiter::superbee);
 
 		fvm::Simulation test4(100, 0, 1, 0, 0.035, 0.8, 1.4,
 				&test4Density, &test4Velocity, &constantVY, &test4Pressure,
-				fvm::FluxScheme::force, fvm::SlopeLimiter::none);
+				fvm::FluxScheme::hllc, fvm::SlopeLimiter::superbee);
 
 		fvm::Simulation test5(100, 0, 1, 0, 0.035, 0.8, 1.4,
 				&test5Density, &test5Velocity, &constantVY, &test5Pressure,
-				fvm::FluxScheme::force, fvm::SlopeLimiter::none);
+				fvm::FluxScheme::hllc, fvm::SlopeLimiter::superbee);
 
 		std::ofstream output1("test1.dat");
 		std::ofstream output2("test2.dat");
@@ -69,7 +65,7 @@ int main(void) {
 		runSimulation(test5, output5);
 
 	} catch (std::exception const& ex) { //std::exception const& ex){
-		std::cerr << ex.what() << "\n";
+		std::cerr << "Error: " << ex.what() << "\n";
 	}
 
 	return 0;

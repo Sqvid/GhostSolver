@@ -106,8 +106,8 @@ namespace fvm {
 			EulerData eulerData_;
 			Grid flux_;
 			// Left and right reconstructed interface values.
-			//CellVector lSlopeIfaces_;
-			//CellVector rSlopeIfaces_;
+			Grid lSlopeIfaces_;
+			Grid rSlopeIfaces_;
 
 			// Private member functions
 			double calcTimeStep_();

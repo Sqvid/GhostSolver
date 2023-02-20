@@ -27,7 +27,7 @@ namespace fvm {
 		 * right-interface values.
 		 * @param the type of slope-limiter to use.
 		 */
-		void linearReconst(EulerData& eulerData, CellVector& lIfaces, CellVector& rIfaces, SlopeLimiter slType);
+		void linearReconst(EulerData& eulerData, Grid& lIfaces, Grid& rIfaces, SlopeLimiter slType);
 	}
 }
 

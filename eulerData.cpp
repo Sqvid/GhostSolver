@@ -1,7 +1,7 @@
 #include "eulerData.hpp"
 
 namespace fvm {
-	// Operator overloads for QuantArray.
+	// Operator overloads for Cell.
 	Cell operator+(Cell a, Cell b) {
 		Cell ans;
 

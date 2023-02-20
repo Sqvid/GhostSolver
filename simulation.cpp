@@ -24,9 +24,9 @@ namespace fvm {
 		if (nCells <= 0) {
 			throw std::invalid_argument("nCells must be > 0.");
 		} else if (tStart < 0) {
-			throw std::invalid_argument("tStart must be >= 0");
+			throw std::invalid_argument("tStart must be >= 0.");
 		} else if (tEnd <= tStart) {
-			throw std::invalid_argument("tEnd must be > tStart");
+			throw std::invalid_argument("tEnd must be > tStart.");
 		}
 
 		nCells_ = nCells;
@@ -45,21 +45,19 @@ namespace fvm {
 		fluxScheme_ = fluxScheme;
 		slType_ = slType;
 
-		// Resize data and flux grids in x.
+		// Resize grids in x.
 		eulerData_.data().resize(nCells_ + 2);
-		flux_.resize(nCells_ + 1);
+		flux_.resize(nCells_ + 2);
+		lSlopeIfaces_.resize(nCells_ + 2);
+		rSlopeIfaces_.resize(nCells_ + 2);
 
-		// Resize data and flux grids in y.
+		// Resize grids in y.
 		for (int i = 0; i < nCells_ + 2; ++i) {
-			if (i < nCells_ + 1) {
-				flux_[i].resize(nCells_ + 1);
-			}
-
 			eulerData_.data()[i].resize(nCells_ + 2);
+			flux_[i].resize(nCells_ + 2);
+			lSlopeIfaces_[i].resize(nCells_ + 2);
+			rSlopeIfaces_[i].resize(nCells_ + 2);
 		}
-
-		//lSlopeIfaces_.resize(nCells_);
-		//rSlopeIfaces_.resize(nCells_);
 
 		// Indices for primitive quantities.
 		int dIndex = static_cast<int>(PrimitiveQuant::density);
@@ -103,42 +101,49 @@ namespace fvm {
 		tNow_ += dt_;
 
 		// If slope limiting has been requested.
-		/*if (slType_ != SlopeLimiter::none) {
+		if (slType_ != SlopeLimiter::none) {
 			// FIXME: Calculate these from reconstructed boundary
 			// cells.
-			flux_[0] = calcFlux_(eulerData_[0], eulerData_[1]);
-			flux_[nCells_] = calcFlux_(eulerData_[nCells_], eulerData_[nCells_ + 1]);
+			for (int j = 0; j < nCells_ + 1; ++j) {
+				flux_[0][j] = calcFlux_(eulerData_[0][j], eulerData_[1][j]);
+				flux_[nCells_][j] = calcFlux_(eulerData_[nCells_][j], eulerData_[nCells_ + 1][j]);
+			}
 
 			internal::linearReconst(eulerData_, lSlopeIfaces_, rSlopeIfaces_, slType_);
 
 			// Half-timestep evolution.
-			for (std::size_t i = 0; i < nCells_; ++i) {
-				Cell& uLeft = lSlopeIfaces_[i];
-				Cell& uRight = rSlopeIfaces_[i];
+			for (int i = 1; i < nCells_ + 1; ++i) {
+				for (int j = 1; j < nCells_ + 1; ++j) {
+					Cell& uLeft = lSlopeIfaces_[i][j];
+					Cell& uRight = rSlopeIfaces_[i][j];
 
-				Cell cellChange = 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
+					Cell cellChange = 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
 
-				uLeft = uLeft - cellChange;
-				uRight = uRight - cellChange;
+					uLeft = uLeft - cellChange;
+					uRight = uRight - cellChange;
+				}
 			}
 
-			for (size_t i = 0; i < nCells_ - 1; ++i) {
-				Cell uRight = rSlopeIfaces_[i];
-				Cell uNextLeft = lSlopeIfaces_[i + 1];
+			// Calculate fluxes with the half-evolved interface values.
+			for (int i = 1; i < nCells_; ++i) {
+				for (int j = 1; j < nCells_ + 1; ++j) {
+					Cell uRight = rSlopeIfaces_[i][j];
+					Cell uNextLeft = lSlopeIfaces_[i + 1][j];
 
-				flux_[i + 1] = calcFlux_(uRight, uNextLeft);
+					flux_[i][j] = calcFlux_(uRight, uNextLeft);
+				}
 			}
 
+		// Without slope-limiting case.
 		} else {
-		*/
 			// Compute flux vector.
-		for (size_t i = 0; i < flux_.size(); ++i) {
-			for (size_t j = 0; j < flux_[0].size(); ++j) {
-				// x-fluxes.
-				flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + 1][j]);
+			for (int i = 0; i < nCells_ + 1; ++i) {
+				for (int j = 1; j < nCells_ + 1; ++j) {
+					// x-fluxes.
+					flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + 1][j]);
+				}
 			}
 		}
-		//}
 
 		// Apply finite difference calculations.
 		for (int i = 1; i < nCells_ + 1; ++i) {
@@ -239,6 +244,11 @@ namespace fvm {
 		int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		double rho = u[dIndex];
+
+		if (rho == 0) {
+			throw std::logic_error("Density in flux expression must never be zero!");
+		}
+
 		double rhoVX = u[moIndexX];
 		double rhoVY = u[moIndexY];
 		double e = u[eIndex];
@@ -272,7 +282,7 @@ namespace fvm {
 		return 0.5 * (lfFlux_(uLeft, uRight) + richtmyerFlux_(uLeft, uRight));
 	}
 
-	// @brief Helper function to convert QuantArray variables to primitive form.
+	// @brief Helper function to convert Cell variables to primitive form.
 	// @note Useful for Riemann-based schemes.
 	// @warn Does not check original state of variables. Use with caution!
 	Cell makePrimQuants(const Cell& u, const double gamma) {
