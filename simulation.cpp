@@ -293,66 +293,70 @@ namespace fvm {
 		return prim;
 	}
 
-	//Cell Simulation::hllcFlux_(const Cell& uLeft, const Cell& uRight) {
-	//	Cell flux;
+	// TODO: Make axis-specific.
+	Cell Simulation::hllcFlux_(const Cell& uLeft, const Cell& uRight) {
+		Cell flux;
 
-	//	// Make primitive version copies of the given cell values.
-	//	Cell primL = makePrimQuants(uLeft, gamma_);
-	//	Cell primR = makePrimQuants(uRight, gamma_);
+		// Make primitive version copies of the given cell values.
+		Cell primL = makePrimQuants(uLeft, gamma_);
+		Cell primR = makePrimQuants(uRight, gamma_);
 
-	//	// Indices for primitive quantities.
-	//	int dIndex = static_cast<int>(PrimitiveQuant::density);
-	//	int vIndex = static_cast<int>(PrimitiveQuant::velocityX);
-	//	int pIndex = static_cast<int>(PrimitiveQuant::pressure);
+		// Indices for primitive quantities.
+		int dIndex = static_cast<int>(PrimitiveQuant::density);
+		int vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
+		int vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
+		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
-	//	// Index for energy.
-	//	int eIndex = static_cast<int>(ConservedQuant::energy);
+		// Index for energy.
+		int eIndex = static_cast<int>(ConservedQuant::energy);
 
-	//	// Alias quantities for convenience.
-	//	double dL = primL[dIndex];
-	//	double vL = primL[vIndex];
-	//	double pL = primL[pIndex];
+		// Alias quantities for convenience.
+		double dL = primL[dIndex];
+		double vxL = primL[vIndexX];
+		double vyL = primL[vIndexY];
+		double pL = primL[pIndex];
 
-	//	double dR = primR[dIndex];
-	//	double vR = primR[vIndex];
-	//	double pR = primR[pIndex];
+		double dR = primR[dIndex];
+		double vxR = primR[vIndexX];
+		double vyR = primR[vIndexY];
+		double pR = primR[pIndex];
 
-	//	double cSoundL = std::sqrt((gamma_ * pL) / dL);
-	//	double cSoundR = std::sqrt((gamma_ * pR) / dR);
+		double cSoundL = std::sqrt((gamma_ * pL) / dL);
+		double cSoundR = std::sqrt((gamma_ * pR) / dR);
 
-	//	// Find approximate left and right sound speeds.
-	//	double sPlus = std::max(std::fabs(vL) + cSoundL, std::fabs(vR) + cSoundR);
+		// Find approximate left and right sound speeds.
+		double sPlus = std::max(std::fabs(vxL) + cSoundL, std::fabs(vxR) + cSoundR);
 
-	//	double sL = -sPlus;
-	//	double sR = sPlus;
+		double sL = -sPlus;
+		double sR = sPlus;
 
-	//	// Approximate contact sound speed.
-	//	double sStar = (pR - pL + dL*vL*(sL - vL) - dR*vR*(sR - vR))
-	//				/ (dL*(sL - vL) - dR*(sR - vR));
+		// Approximate contact sound speed.
+		double sStar = (pR - pL + dL*vxL*(sL - vxL) - dR*vxR*(sR - vxR))
+					/ (dL*(sL - vxL) - dR*(sR - vxR));
 
-	//	if ( sL >= 0 ) {
-	//		flux = fluxExpr_(uLeft);
+		if ( sL >= 0 ) {
+			flux = fluxExpr_(uLeft);
 
-	//	} else if (sStar >= 0) {
-	//		Cell hllcL = dL * ((sL - vL) / (sL - sStar))
-	//				* Cell({1, sStar,
-	//				uLeft[eIndex]/dL + (sStar - vL)*(sStar + pL/(dL * (sL - vL)))});
+		} else if (sStar >= 0) {
+			Cell hllcL = dL * ((sL - vxL) / (sL - sStar))
+					* Cell({1, sStar, vyL,
+					uLeft[eIndex]/dL + (sStar - vxL)*(sStar + pL/(dL * (sL - vxL)))});
 
-	//		flux = fluxExpr_(uLeft) + sL * (hllcL - uLeft);
+			flux = fluxExpr_(uLeft) + sL * (hllcL - uLeft);
 
-	//	} else if (sR >= 0) {
-	//		Cell hllcR = dR * ((sR - vR) / (sR - sStar))
-	//				* Cell({1, sStar,
-	//				uRight[eIndex]/dR + (sStar - vR)*(sStar + pR/(dR * (sR - vR)))});
+		} else if (sR >= 0) {
+			Cell hllcR = dR * ((sR - vxR) / (sR - sStar))
+					* Cell({1, sStar, vyR,
+					uRight[eIndex]/dR + (sStar - vxR)*(sStar + pR/(dR * (sR - vxR)))});
 
-	//		flux = fluxExpr_(uRight) + sR * (hllcR - uRight);
+			flux = fluxExpr_(uRight) + sR * (hllcR - uRight);
 
-	//	} else {
-	//		flux = fluxExpr_(uRight);
-	//	}
+		} else {
+			flux = fluxExpr_(uRight);
+		}
 
-	//	return flux;
-	//}
+		return flux;
+	}
 
 	// Return the appropriate value for the given cell, flux scheme, and flux expression.
 	Cell Simulation::calcFlux_(const Cell& uLeft, const Cell& uRight) {
@@ -371,9 +375,9 @@ namespace fvm {
 				flux = forceFlux_(uLeft, uRight);
 				break;
 
-			//case FluxScheme::hllc:
-			//	flux = hllcFlux_(uLeft, uRight);
-			//	break;
+			case FluxScheme::hllc:
+				flux = hllcFlux_(uLeft, uRight);
+				break;
 		}
 
 		return flux;

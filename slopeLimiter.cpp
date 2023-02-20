@@ -9,7 +9,7 @@
 #include "slopeLimiter.hpp"
 
 namespace fvm {
-	const double slopeTolerence = 0.00001;
+	//const double slopeTolerence = 0.00001;
 
 	double xiRight(double r) {
 		return 2 / (1 + r);

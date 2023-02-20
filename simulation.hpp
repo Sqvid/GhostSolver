@@ -13,12 +13,18 @@
 using std::size_t;
 
 namespace fvm {
+	// The spatial dimensions in which the simulation is being carried out..
+	enum class Axis {
+		x,
+		y
+	};
+
 	// Flux scheme options.
 	enum class FluxScheme {
 		laxFriedrichs,
 		richtmyer,
 		force,
-		//hllc
+		hllc
 	};
 
 	/** The main class that holds the input parameters of the simulation.
@@ -108,7 +114,7 @@ namespace fvm {
 			Cell lfFlux_(const Cell& uLeft, const Cell& uRight);
 			Cell richtmyerFlux_(const Cell& uLeft, const Cell& uRight);
 			Cell forceFlux_(const Cell& uLeft, const Cell& uRight);
-			//Cell hllcFlux_(const Cell& uLeft, const Cell& uRight);
+			Cell hllcFlux_(const Cell& uLeft, const Cell& uRight);
 			Cell calcFlux_(const Cell& uLeft, const Cell& uRight);
 			Cell fluxExpr_(Cell u);
 			// Wrappers around EulerData mode conversion function.
