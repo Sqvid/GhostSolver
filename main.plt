@@ -12,6 +12,8 @@ do for [i=1:numFiles] {
 	stats file("dat", i) u 1 nooutput
 	nBlocks = STATS_blocks
 
+	print sprintf("[%d/%d] Plotting file %s...", i, numFiles, file("dat", i))
+
 	do for [j=1:nBlocks] {
 		set multiplot layout 4,1
 

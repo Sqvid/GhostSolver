@@ -101,57 +101,61 @@ namespace fvm {
 		tNow_ += dt_;
 
 		// If slope limiting has been requested.
-		if (slType_ != SlopeLimiter::none) {
-			// FIXME: Calculate these from reconstructed boundary
-			// cells.
-			for (int j = 0; j < nCells_ + 1; ++j) {
-				flux_[0][j] = calcFlux_(eulerData_[0][j], eulerData_[1][j]);
-				flux_[nCells_][j] = calcFlux_(eulerData_[nCells_][j], eulerData_[nCells_ + 1][j]);
-			}
+		//if (slType_ != SlopeLimiter::none) {
+		//	// FIXME: Calculate these from reconstructed boundary
+		//	// cells.
+		//	// Calculate x-boundary fluxes.
+		//	for (int j = 0; j < nCells_ + 1; ++j) {
+		//		flux_[0][j] = calcFlux_(eulerData_[0][j], eulerData_[1][j], Axis::x);
+		//		flux_[nCells_][j] = calcFlux_(eulerData_[nCells_][j], eulerData_[nCells_ + 1][j], Axis::x);
+		//	}
 
-			// Linearly reconstruct the data and store interface values in
-			// lSlopeIfaces_, and rSlopeIfaces_.
-			linearReconst_();
+		//	// Linearly reconstruct the data and store interface values in
+		//	// lSlopeIfaces_, and rSlopeIfaces_.
+		//	//linearReconst_();
 
-			// Half-timestep evolution.
-			for (int i = 1; i < nCells_ + 1; ++i) {
-				for (int j = 1; j < nCells_ + 1; ++j) {
-					Cell& uLeft = lSlopeIfaces_[i][j];
-					Cell& uRight = rSlopeIfaces_[i][j];
+		//	// Half-timestep evolution.
+		//	for (int i = 1; i < nCells_ + 1; ++i) {
+		//		for (int j = 1; j < nCells_ + 1; ++j) {
+		//			Cell& uLeft = lSlopeIfaces_[i][j];
+		//			Cell& uRight = rSlopeIfaces_[i][j];
 
-					Cell cellChange = 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
+		//			Cell cellChange = 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
 
-					uLeft = uLeft - cellChange;
-					uRight = uRight - cellChange;
-				}
-			}
+		//			uLeft = uLeft - cellChange;
+		//			uRight = uRight - cellChange;
+		//		}
+		//	}
 
-			// Calculate fluxes with the half-evolved interface values.
-			for (int i = 1; i < nCells_; ++i) {
-				for (int j = 1; j < nCells_ + 1; ++j) {
-					Cell uRight = rSlopeIfaces_[i][j];
-					Cell uNextLeft = lSlopeIfaces_[i + 1][j];
+		//	// Calculate fluxes with the half-evolved interface values.
+		//	for (int i = 1; i < nCells_; ++i) {
+		//		for (int j = 1; j < nCells_ + 1; ++j) {
+		//			Cell uRight = rSlopeIfaces_[i][j];
+		//			Cell uNextLeft = lSlopeIfaces_[i + 1][j];
 
-					flux_[i][j] = calcFlux_(uRight, uNextLeft);
-				}
-			}
+		//			flux_[i][j] = calcFlux_(uRight, uNextLeft, Axis::x);
+		//		}
+		//	}
 
-		// Without slope-limiting case.
-		} else {
-			// Compute flux vector.
-			for (int i = 0; i < nCells_ + 1; ++i) {
-				for (int j = 1; j < nCells_ + 1; ++j) {
-					// x-fluxes.
-					flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + 1][j]);
-				}
-			}
-		}
+		//// Without slope-limiting case.
+		//} else {
+		//	// Compute flux vector.
+		//	for (int i = 0; i < nCells_ + 1; ++i) {
+		//		for (int j = 1; j < nCells_ + 1; ++j) {
+		//			// x-fluxes.
+		//			flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + 1][j], Axis::x);
+		//		}
+		//	}
+		//}
 
-		// Apply finite difference calculations.
+		calcReconstFlux_(Axis::x);
+
+		//EulerData xSplitSolution(eulerData_);
+
+		// Apply finite difference calculations in x.
 		for (int i = 1; i < nCells_ + 1; ++i) {
 			for (int j = 1; j < nCells_ + 1; ++j) {
-				Cell cell = eulerData_[i][j];
-				Cell newCell = cell - (dt_/dx_) * (flux_[i][j] - flux_[i - 1][j]);
+				Cell newCell = eulerData_[i][j] - (dt_/dx_) * (flux_[i][j] - flux_[i - 1][j]);
 
 				eulerData_.setQuantity(i, j, newCell);
 			}
@@ -161,6 +165,23 @@ namespace fvm {
 		for (int j = 1; j < nCells_ + 1; ++j) {
 			eulerData_.setQuantity(0, j, eulerData_[1][j]);
 			eulerData_.setQuantity(nCells_ + 1, j, eulerData_[nCells_][j]);
+		}
+
+		calcReconstFlux_(Axis::y);
+
+		// Apply finite difference calculations in y.
+		for (int i = 1; i < nCells_ + 1; ++i) {
+			for (int j = 1; j < nCells_ + 1; ++j) {
+				Cell newCell = eulerData_[i][j] - (dt_/dy_) * (flux_[i][j] - flux_[i][j - 1]);
+
+				eulerData_.setQuantity(i, j, newCell);
+			}
+		}
+
+		// Apply boundary conditions in y.
+		for (int i = 1; i < nCells_ + 1; ++i) {
+			eulerData_.setQuantity(i, 0, eulerData_[i][1]);
+			eulerData_.setQuantity(i, nCells_ + 1, eulerData_[i][nCells_]);
 		}
 	}
 
@@ -198,13 +219,98 @@ namespace fvm {
 		return output;
 	}
 
+	void Simulation::calcReconstFlux_(Axis ax) {
+		if (slType_ != SlopeLimiter::none) {
+			// FIXME: Calculate these from reconstructed boundary
+			// cells.
+			// Calculate boundary fluxes.
+			switch (ax) {
+				case Axis::x:
+					for (int j = 0; j < nCells_ + 1; ++j) {
+						flux_[0][j] = calcFlux_(eulerData_[0][j], eulerData_[1][j], Axis::x);
+						flux_[nCells_][j] = calcFlux_(eulerData_[nCells_][j], eulerData_[nCells_ + 1][j], Axis::x);
+					}
+
+					break;
+
+				case Axis::y:
+					for (int i = 0; i < nCells_ + 1; ++i) {
+						flux_[i][0] = calcFlux_(eulerData_[i][0], eulerData_[i][1], Axis::y);
+						flux_[i][nCells_] = calcFlux_(eulerData_[i][nCells_], eulerData_[i][nCells_ + 1], Axis::y);
+					}
+
+					break;
+			}
+
+			// Linearly reconstruct the data and store interface values in
+			// lSlopeIfaces_, and rSlopeIfaces_.
+			linearReconst_(ax);
+
+			// Half-timestep evolution.
+			for (int i = 1; i < nCells_ + 1; ++i) {
+				for (int j = 1; j < nCells_ + 1; ++j) {
+					Cell& uLeft = lSlopeIfaces_[i][j];
+					Cell& uRight = rSlopeIfaces_[i][j];
+
+					// FIXME: This will fail if dx != dy.
+					Cell cellChange = 0.5 * (dt_/dx_) * (fluxExpr_(uRight, ax) - fluxExpr_(uLeft, ax));
+
+					uLeft = uLeft - cellChange;
+					uRight = uRight - cellChange;
+				}
+			}
+
+			// Calculate fluxes with the half-evolved interface values.
+			for (int i = 1; i < nCells_; ++i) {
+				for (int j = 1; j < nCells_ + 1; ++j) {
+					Cell uRight = rSlopeIfaces_[i][j];
+					Cell uNextLeft {};
+
+					switch (ax) {
+						case Axis::x:
+							uNextLeft = lSlopeIfaces_[i + 1][j];
+							break;
+
+						case Axis::y:
+							uNextLeft = lSlopeIfaces_[i][j + 1];
+							break;
+					}
+
+					flux_[i][j] = calcFlux_(uRight, uNextLeft, ax);
+				}
+			}
+
+		} else {
+			// x- and y-offsets. These determine in which direction to look for
+			// the "next" cell;
+			int xOff {}, yOff {};
+
+			switch (ax) {
+				case Axis::x:
+					xOff = 1;
+					break;
+
+				case Axis::y:
+					yOff = 1;
+					break;
+			}
+
+			// Compute flux vector.
+			for (int i = 0; i < nCells_ + 1; ++i) {
+				for (int j = 1; j < nCells_ + 1; ++j) {
+					flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + xOff][j + yOff], ax);
+				}
+			}
+		}
+	}
+
 	// Private member function definitions:
 
 	// Heuristic to find a timestep to keep cell updatas stable.
 	// Timestep is computed such that it is stable for the fastest
 	// information wave.
 	double Simulation::calcTimeStep_() {
-		double vMax = 0;
+		double max = 0;
 
 		// Indices for conserved quantities.
 		int dIndex = static_cast<int>(ConservedQuant::density);
@@ -225,19 +331,22 @@ namespace fvm {
 				auto cSound = std::sqrt((gamma_*(gamma_ - 1)
 							*(e - 0.5*((rhoVX*rhoVX + rhoVY*rhoVY) / rho))) / rho);
 
-				auto vX = std::fabs(rhoVX / rho) + cSound;
+				auto sX = std::fabs(rhoVX / rho) + cSound;
+				auto sY = std::fabs(rhoVY / rho) + cSound;
 
-				if (vX > vMax) {
-					vMax = vX;
+				auto r = std::max(sX / dx_, sY / dy_);
+
+				if (r > max) {
+					max = r;
 				}
 			}
 		}
 
-		return cfl_ * (dx_ / vMax);
+		return cfl_ / max;
 	}
 
 	// TODO: Move this function into Simulation class.
-	void Simulation::linearReconst_() {
+	void Simulation::linearReconst_(Axis ax) {
 		// Alias the numerical data.
 		eulerData_.setMode(EulerDataMode::conserved);
 		Grid& u = eulerData_.data();
@@ -249,8 +358,22 @@ namespace fvm {
 		// Calculate reconstructed interface values.
 		for (size_t i = 1; i < u.size() - 1; ++i) {
 			for (size_t j = 1; j < u[0].size() - 1; ++j) {
-				Cell deltaLeft = u[i][j] - u[i - 1][j];
-				Cell deltaRight = u[i + 1][j] - u[i][j];
+				//Cell deltaLeft = u[i][j] - u[i - 1][j];
+				//Cell deltaRight = u[i + 1][j] - u[i][j];
+				Cell deltaLeft {};
+				Cell deltaRight {};
+
+				switch (ax) {
+					case Axis::x:
+						deltaLeft = u[i][j] - u[i - 1][j];
+						deltaRight = u[i + 1][j] - u[i][j];
+						break;
+
+					case Axis::y:
+						deltaLeft = u[i][j] - u[i][j - 1];
+						deltaRight = u[i][j] - u[i][j + 1];
+						break;
+				}
 
 				Cell delta = 0.5 * (deltaLeft + deltaRight);
 
@@ -272,7 +395,7 @@ namespace fvm {
 	}
 
 	// Return the fluxes for the conserved quantities.
-	Cell Simulation::fluxExpr_(Cell u) {
+	Cell Simulation::fluxExpr_(Cell u, Axis ax) {
 		Cell flux;
 
 		int dIndex = static_cast<int>(ConservedQuant::density);
@@ -291,32 +414,43 @@ namespace fvm {
 		double e = u[eIndex];
 		double p = (gamma_ - 1) * (e - (rhoVX*rhoVX)/(2*rho));
 
-		flux[dIndex] = rhoVX;
-		flux[moIndexX] = (rhoVX * rhoVX)/rho + p;
-		flux[moIndexY] = (rhoVX * rhoVY)/rho;
-		flux[eIndex] = (e + p) * (rhoVX / rho);
+		switch (ax) {
+			case Axis::x:
+				flux[dIndex] = rhoVX;
+				flux[moIndexX] = (rhoVX * rhoVX)/rho + p;
+				flux[moIndexY] = (rhoVX * rhoVY)/rho;
+				flux[eIndex] = (e + p) * (rhoVX / rho);
+				break;
+
+			case Axis::y:
+				flux[dIndex] = rhoVY;
+				flux[moIndexX] = (rhoVX * rhoVY)/rho;
+				flux[moIndexY] = (rhoVY * rhoVY)/rho + p;
+				flux[eIndex] = (e + p) * (rhoVY / rho);
+				break;
+		}
 
 		return flux;
 	}
 
 	// Lax-Friedrichs flux function.
-	Cell Simulation::lfFlux_(const Cell& uLeft, const Cell& uRight) {
+	Cell Simulation::lfFlux_(const Cell& uLeft, const Cell& uRight, Axis ax) {
 		return 0.5 * (dx_/dt_) * (uLeft - uRight)
-			+ 0.5 * (fluxExpr_(uRight) + fluxExpr_(uLeft));
+			+ 0.5 * (fluxExpr_(uRight, ax) + fluxExpr_(uLeft, ax));
 	}
 
 	// Richtmeyer flux function.
-	Cell Simulation::richtmyerFlux_(const Cell& uLeft, const Cell& uRight) {
+	Cell Simulation::richtmyerFlux_(const Cell& uLeft, const Cell& uRight, Axis ax) {
 		//Cell halfStepUpdate = (0.5 * (uLeft + uRight)) - (0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft)));
 		Cell half1 = 0.5 * (uLeft + uRight);
-		Cell half2 = 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
+		Cell half2 = 0.5 * (dt_/dx_) * (fluxExpr_(uRight, ax) - fluxExpr_(uLeft, ax));
 		Cell halfStepUpdate = half1 - half2;
 
-		return fluxExpr_(halfStepUpdate);
+		return fluxExpr_(halfStepUpdate, ax);
 	}
 
-	Cell Simulation::forceFlux_(const Cell& uLeft, const Cell& uRight) {
-		return 0.5 * (lfFlux_(uLeft, uRight) + richtmyerFlux_(uLeft, uRight));
+	Cell Simulation::forceFlux_(const Cell& uLeft, const Cell& uRight, Axis ax) {
+		return 0.5 * (lfFlux_(uLeft, uRight, ax) + richtmyerFlux_(uLeft, uRight, ax));
 	}
 
 	// @brief Helper function to convert Cell variables to primitive form.
@@ -341,7 +475,7 @@ namespace fvm {
 	}
 
 	// TODO: Make axis-specific.
-	Cell Simulation::hllcFlux_(const Cell& uLeft, const Cell& uRight) {
+	Cell Simulation::hllcFlux_(const Cell& uLeft, const Cell& uRight, Axis ax) {
 		Cell flux;
 
 		// Make primitive version copies of the given cell values.
@@ -382,48 +516,48 @@ namespace fvm {
 					/ (dL*(sL - vxL) - dR*(sR - vxR));
 
 		if ( sL >= 0 ) {
-			flux = fluxExpr_(uLeft);
+			flux = fluxExpr_(uLeft, ax);
 
 		} else if (sStar >= 0) {
 			Cell hllcL = dL * ((sL - vxL) / (sL - sStar))
 					* Cell({1, sStar, vyL,
 					uLeft[eIndex]/dL + (sStar - vxL)*(sStar + pL/(dL * (sL - vxL)))});
 
-			flux = fluxExpr_(uLeft) + sL * (hllcL - uLeft);
+			flux = fluxExpr_(uLeft, ax) + sL * (hllcL - uLeft);
 
 		} else if (sR >= 0) {
 			Cell hllcR = dR * ((sR - vxR) / (sR - sStar))
 					* Cell({1, sStar, vyR,
 					uRight[eIndex]/dR + (sStar - vxR)*(sStar + pR/(dR * (sR - vxR)))});
 
-			flux = fluxExpr_(uRight) + sR * (hllcR - uRight);
+			flux = fluxExpr_(uRight, ax) + sR * (hllcR - uRight);
 
 		} else {
-			flux = fluxExpr_(uRight);
+			flux = fluxExpr_(uRight, ax);
 		}
 
 		return flux;
 	}
 
 	// Return the appropriate value for the given cell, flux scheme, and flux expression.
-	Cell Simulation::calcFlux_(const Cell& uLeft, const Cell& uRight) {
+	Cell Simulation::calcFlux_(const Cell& uLeft, const Cell& uRight, Axis ax) {
 		Cell flux;
 
 		switch (fluxScheme_) {
 			case FluxScheme::laxFriedrichs:
-				flux = lfFlux_(uLeft, uRight);
+				flux = lfFlux_(uLeft, uRight, ax);
 				break;
 
 			case FluxScheme::richtmyer:
-				flux = richtmyerFlux_(uLeft, uRight);
+				flux = richtmyerFlux_(uLeft, uRight, ax);
 				break;
 
 			case FluxScheme::force:
-				flux = forceFlux_(uLeft, uRight);
+				flux = forceFlux_(uLeft, uRight, ax);
 				break;
 
 			case FluxScheme::hllc:
-				flux = hllcFlux_(uLeft, uRight);
+				flux = hllcFlux_(uLeft, uRight, ax);
 				break;
 		}
 

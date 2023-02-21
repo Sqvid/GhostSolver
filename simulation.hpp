@@ -13,7 +13,7 @@
 using std::size_t;
 
 namespace fvm {
-	// The spatial dimensions in which the simulation is being carried out..
+	// The spatial dimensions in which the simulation is carried out.
 	enum class Axis {
 		x,
 		y
@@ -111,13 +111,14 @@ namespace fvm {
 
 			// Private member functions
 			double calcTimeStep_();
-			void linearReconst_();
-			Cell fluxExpr_(Cell u);
-			Cell lfFlux_(const Cell& uLeft, const Cell& uRight);
-			Cell richtmyerFlux_(const Cell& uLeft, const Cell& uRight);
-			Cell forceFlux_(const Cell& uLeft, const Cell& uRight);
-			Cell hllcFlux_(const Cell& uLeft, const Cell& uRight);
-			Cell calcFlux_(const Cell& uLeft, const Cell& uRight);
+			void calcReconstFlux_(Axis ax);
+			void linearReconst_(Axis ax);
+			Cell fluxExpr_(Cell u, Axis ax);
+			Cell calcFlux_(const Cell& uLeft, const Cell& uRight, Axis ax);
+			Cell lfFlux_(const Cell& uLeft, const Cell& uRight, Axis ax);
+			Cell richtmyerFlux_(const Cell& uLeft, const Cell& uRight, Axis ax);
+			Cell forceFlux_(const Cell& uLeft, const Cell& uRight, Axis ax);
+			Cell hllcFlux_(const Cell& uLeft, const Cell& uRight, Axis ax);
 			// Wrapper around EulerData mode conversion function.
 			void setMode(EulerDataMode want) { eulerData_.setMode(want); }
 	};
