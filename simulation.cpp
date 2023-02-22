@@ -108,11 +108,6 @@ namespace fvm {
 			for (int j = 1; j < nCells_ + 1; ++j) {
 				Cell diff = (dt_/dx_) * (flux_[i][j] - flux_[i - 1][j]);
 
-				// FIXME: DEBUG: Remove after debugging
-				if (diff != Cell{}) {
-					std::cerr << i << " " << j << "\n" << diff << "\n";
-				}
-
 				Cell newCell = eulerData_[i][j] - diff;
 
 				eulerData_.setCell(i, j, newCell);
@@ -218,8 +213,8 @@ namespace fvm {
 
 			switch (ax) {
 				case Axis::x:
-					for (int i = 0; i < nCells_ + 1; ++i) {
-						for (int j = 0; j < nCells_ + 1; ++j) {
+					for (int i = 1; i < nCells_; ++i) {
+						for (int j = 1; j < nCells_ + 1; ++j) {
 							uRight = rSlopeIfaces_[i][j];
 							uNextLeft = lSlopeIfaces_[i + 1][j];
 
@@ -230,8 +225,10 @@ namespace fvm {
 					break;
 
 				case Axis::y:
-					for (int i = 0; i < nCells_ + 1; ++i) {
-						for (int j = 0; j < nCells_ + 1; ++j) {
+					// FIXME: Adjust boundary when reconstruction is fixed with
+					// extra ghost cells.
+					for (int i = 1; i < nCells_ + 1; ++i) {
+						for (int j = 1; j < nCells_; ++j) {
 							uRight = rSlopeIfaces_[i][j];
 							uNextLeft = lSlopeIfaces_[i][j + 1];
 
