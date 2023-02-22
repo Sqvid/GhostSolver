@@ -65,7 +65,7 @@ namespace fvm {
 		int vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
 		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
-		// Populate the solution space with the initail function.
+		// Populate the solution space with the initial function.
 		for (size_t i = 0; i < eulerData_.data().size(); ++i) {
 			// ith cell centre x-position.
 			double x = xStart_ + (i - 0.5) * dx_;
@@ -85,11 +85,15 @@ namespace fvm {
 		}
 
 		// Apply transmissive boundary conditions.
-		for (int j = 1; j < nCells; ++j) {
-			// x-boundaries.
-			eulerData_.setQuantity(0, j, eulerData_[1][j]);
-			eulerData_.setQuantity(nCells_ + 1, j, eulerData_[nCells_][j]);
-		}
+		//for (int i = 1; i < nCells + 1; ++i) {
+		//	// x-boundaries.
+		//	eulerData_.setQuantity(0, i, eulerData_[1][i]);
+		//	eulerData_.setQuantity(nCells_ + 1, i, eulerData_[nCells_][i]);
+
+		//	// y-boundaries.
+		//	//eulerData_.setQuantity(i, 0, eulerData_[i][1]);
+		//	//eulerData_.setQuantity(i, nCells_ + 1, eulerData_[i][nCells_]);
+		//}
 	}
 
 	// Evolve the simulation one timestep.
@@ -100,57 +104,13 @@ namespace fvm {
 		dt_ = calcTimeStep_();
 		tNow_ += dt_;
 
-		// If slope limiting has been requested.
-		//if (slType_ != SlopeLimiter::none) {
-		//	// FIXME: Calculate these from reconstructed boundary
-		//	// cells.
-		//	// Calculate x-boundary fluxes.
-		//	for (int j = 0; j < nCells_ + 1; ++j) {
-		//		flux_[0][j] = calcFlux_(eulerData_[0][j], eulerData_[1][j], Axis::x);
-		//		flux_[nCells_][j] = calcFlux_(eulerData_[nCells_][j], eulerData_[nCells_ + 1][j], Axis::x);
-		//	}
+		// Apply boundary conditions in x.
+		for (int j = 1; j < nCells_ + 1; ++j) {
+			eulerData_.setQuantity(0, j, eulerData_[1][j]);
+			eulerData_.setQuantity(nCells_ + 1, j, eulerData_[nCells_][j]);
+		}
 
-		//	// Linearly reconstruct the data and store interface values in
-		//	// lSlopeIfaces_, and rSlopeIfaces_.
-		//	//linearReconst_();
-
-		//	// Half-timestep evolution.
-		//	for (int i = 1; i < nCells_ + 1; ++i) {
-		//		for (int j = 1; j < nCells_ + 1; ++j) {
-		//			Cell& uLeft = lSlopeIfaces_[i][j];
-		//			Cell& uRight = rSlopeIfaces_[i][j];
-
-		//			Cell cellChange = 0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft));
-
-		//			uLeft = uLeft - cellChange;
-		//			uRight = uRight - cellChange;
-		//		}
-		//	}
-
-		//	// Calculate fluxes with the half-evolved interface values.
-		//	for (int i = 1; i < nCells_; ++i) {
-		//		for (int j = 1; j < nCells_ + 1; ++j) {
-		//			Cell uRight = rSlopeIfaces_[i][j];
-		//			Cell uNextLeft = lSlopeIfaces_[i + 1][j];
-
-		//			flux_[i][j] = calcFlux_(uRight, uNextLeft, Axis::x);
-		//		}
-		//	}
-
-		//// Without slope-limiting case.
-		//} else {
-		//	// Compute flux vector.
-		//	for (int i = 0; i < nCells_ + 1; ++i) {
-		//		for (int j = 1; j < nCells_ + 1; ++j) {
-		//			// x-fluxes.
-		//			flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + 1][j], Axis::x);
-		//		}
-		//	}
-		//}
-
-		calcReconstFlux_(Axis::x);
-
-		//EulerData xSplitSolution(eulerData_);
+		calcFluxGrid_(Axis::x);
 
 		// Apply finite difference calculations in x.
 		for (int i = 1; i < nCells_ + 1; ++i) {
@@ -161,13 +121,13 @@ namespace fvm {
 			}
 		}
 
-		// Apply boundary conditions in x.
-		for (int j = 1; j < nCells_ + 1; ++j) {
-			eulerData_.setQuantity(0, j, eulerData_[1][j]);
-			eulerData_.setQuantity(nCells_ + 1, j, eulerData_[nCells_][j]);
+		// Apply boundary conditions in y.
+		for (int i = 1; i < nCells_ + 1; ++i) {
+			eulerData_.setQuantity(i, 0, eulerData_[i][1]);
+			eulerData_.setQuantity(i, nCells_ + 1, eulerData_[i][nCells_]);
 		}
 
-		calcReconstFlux_(Axis::y);
+		calcFluxGrid_(Axis::y);
 
 		// Apply finite difference calculations in y.
 		for (int i = 1; i < nCells_ + 1; ++i) {
@@ -176,12 +136,6 @@ namespace fvm {
 
 				eulerData_.setQuantity(i, j, newCell);
 			}
-		}
-
-		// Apply boundary conditions in y.
-		for (int i = 1; i < nCells_ + 1; ++i) {
-			eulerData_.setQuantity(i, 0, eulerData_[i][1]);
-			eulerData_.setQuantity(i, nCells_ + 1, eulerData_[i][nCells_]);
 		}
 	}
 
@@ -219,7 +173,7 @@ namespace fvm {
 		return output;
 	}
 
-	void Simulation::calcReconstFlux_(Axis ax) {
+	void Simulation::calcFluxGrid_(Axis ax) {
 		if (slType_ != SlopeLimiter::none) {
 			// FIXME: Calculate these from reconstructed boundary
 			// cells.
@@ -281,25 +235,24 @@ namespace fvm {
 			}
 
 		} else {
-			// x- and y-offsets. These determine in which direction to look for
-			// the "next" cell;
-			int xOff {}, yOff {};
-
 			switch (ax) {
 				case Axis::x:
-					xOff = 1;
+					for (int i = 0; i < nCells_ + 1; ++i) {
+						for (int j = 1; j < nCells_ + 1; ++j) {
+							flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + 1][j], ax);
+						}
+					}
+
 					break;
 
 				case Axis::y:
-					yOff = 1;
-					break;
-			}
+					for (int i = 1; i < nCells_ + 1; ++i) {
+						for (int j = 0; j < nCells_ + 1; ++j) {
+							flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i][j + 1], ax);
+						}
+					}
 
-			// Compute flux vector.
-			for (int i = 0; i < nCells_ + 1; ++i) {
-				for (int j = 1; j < nCells_ + 1; ++j) {
-					flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + xOff][j + yOff], ax);
-				}
+					break;
 			}
 		}
 	}
@@ -371,7 +324,7 @@ namespace fvm {
 
 					case Axis::y:
 						deltaLeft = u[i][j] - u[i][j - 1];
-						deltaRight = u[i][j] - u[i][j + 1];
+						deltaRight = u[i][j + 1] - u[i][j];
 						break;
 				}
 
@@ -461,15 +414,21 @@ namespace fvm {
 		prim = u;
 
 		int dIndex = static_cast<size_t>(ConservedQuant::density);
-		int moIndex = static_cast<int>(ConservedQuant::momentumX);
+		int moIndexX = static_cast<int>(ConservedQuant::momentumX);
+		int moIndexY = static_cast<int>(ConservedQuant::momentumX);
 		int eIndex = static_cast<int>(ConservedQuant::energy);
 
+		auto rho = u[dIndex];
+		auto rhoVX = u[moIndexX];
+		auto rhoVY = u[moIndexY];
+		auto e = u[eIndex];
+
 		// Convert energy to pressure.
-		prim[eIndex] = (gamma - 1) * (u[eIndex]
-				- 0.5 * ((u[moIndex] * u[moIndex]) / u[dIndex]));
+		prim[eIndex] = (gamma - 1) * (e - 0.5 * ((rhoVX*rhoVX + rhoVY*rhoVY) / rho));
 
 		// Convert momentum to velocity.
-		prim[moIndex] = u[moIndex] / u[dIndex];
+		prim[moIndexX] = rhoVX / rho;
+		prim[moIndexY] = rhoVY / rho;
 
 		return prim;
 	}

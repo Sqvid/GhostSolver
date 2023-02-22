@@ -111,7 +111,7 @@ namespace fvm {
 
 			// Private member functions
 			double calcTimeStep_();
-			void calcReconstFlux_(Axis ax);
+			void calcFluxGrid_(Axis ax);
 			void linearReconst_(Axis ax);
 			Cell fluxExpr_(Cell u, Axis ax);
 			Cell calcFlux_(const Cell& uLeft, const Cell& uRight, Axis ax);

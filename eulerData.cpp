@@ -90,9 +90,9 @@ namespace fvm {
 				// Convert pressure to energy.
 				data_[i][j][pIndex] = (p / (gamma_ - 1)) + 0.5 * ((rhoVX*rhoVX + rhoVY*rhoVY) / rho);
 			}
-
-			mode_ = EulerDataMode::conserved;
 		}
+
+		mode_ = EulerDataMode::conserved;
 	}
 
 	void EulerData::makePrimitive_() {
@@ -115,8 +115,8 @@ namespace fvm {
 				data_[i][j][moIndexX] /= d;
 				data_[i][j][moIndexY] /= d;
 			}
-
-			mode_ = EulerDataMode::primitive;
 		}
+
+		mode_ = EulerDataMode::primitive;
 	}
 }

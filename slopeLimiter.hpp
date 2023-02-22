@@ -17,7 +17,7 @@ namespace fvm {
 
 	// Not intended for the end-user.
 	namespace internal {
-		const double slopeTolerence = 0.00001;
+		const double slopeTolerence = 1e-6;
 
 		double minbee(double r);
 		double superbee(double r);
