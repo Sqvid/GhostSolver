@@ -29,6 +29,8 @@ namespace fvm {
 	Cell operator*(double a, Cell u);
 	Cell operator*(Cell u, double a);
 	Cell operator/(Cell u, double a);
+	// Output to std::ostream;
+	std::ostream& operator<<(std::ostream& stream, Cell cell);
 
 	enum class PrimitiveQuant {
 		density = 0,
@@ -72,7 +74,7 @@ namespace fvm {
 			EulerDataMode mode() { return mode_; }
 
 			// Setters
-			void setQuantity(size_t i, size_t j, Cell newValues) { data_[i][j] = newValues; }
+			void setCell(size_t i, size_t j, Cell newValues) { data_[i][j] = newValues; }
 			void setMode(EulerDataMode want);
 
 			// Operator overloads.

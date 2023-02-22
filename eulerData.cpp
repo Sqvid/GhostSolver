@@ -52,6 +52,14 @@ namespace fvm {
 		return ans;
 	}
 
+	std::ostream& operator<<(std::ostream& stream, Cell cell) {
+		for (size_t i = 0; i < cell.size(); ++i) {
+			stream << cell[i];
+		}
+
+		return stream;
+	}
+
 	// Put the data in the correct mode.
 	void EulerData::setMode(EulerDataMode want) {
 		// The mode is already correctly set; return early.
@@ -103,17 +111,17 @@ namespace fvm {
 
 		for (size_t i = 0; i < this->xSize(); ++i) {
 			for (size_t j = 0; j < this->ySize(); ++j) {
-				auto d = data_[i][j][dIndex];
+				auto rho = data_[i][j][dIndex];
 				auto rhoVX = data_[i][j][moIndexX];
 				auto rhoVY = data_[i][j][moIndexY];
 				auto e = data_[i][j][eIndex];
 
 				// Convert energy to pressure.
-				data_[i][j][eIndex] = (gamma_ - 1) * (e - 0.5 * ((rhoVX*rhoVX + rhoVY*rhoVY) / d));
+				data_[i][j][eIndex] = (gamma_ - 1) * (e - 0.5 * ((rhoVX*rhoVX + rhoVY*rhoVY) / rho));
 
 				// Convert momentum to velocity.
-				data_[i][j][moIndexX] /= d;
-				data_[i][j][moIndexY] /= d;
+				data_[i][j][moIndexX] /= rho;
+				data_[i][j][moIndexY] /= rho;
 			}
 		}
 

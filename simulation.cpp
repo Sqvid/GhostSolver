@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <iostream>
 #include <stdexcept>
 
 #include "simulation.hpp"
@@ -74,26 +76,15 @@ namespace fvm {
 				// ith cell centre y-position.
 				double y = yStart_ + (j - 0.5) * dy_;
 
-				Cell cellValues;
-				cellValues[dIndex] = densityDist(x);
-				cellValues[vIndexX] = velocityDistX(x);
-				cellValues[vIndexY] = velocityDistY(y);
-				cellValues[pIndex] = pressureDist(x);
+				Cell cell;
+				cell[dIndex] = densityDist(x);
+				cell[vIndexX] = velocityDistX(x);
+				cell[vIndexY] = velocityDistY(y);
+				cell[pIndex] = pressureDist(x);
 
-				eulerData_.setQuantity(i, j, cellValues);
+				eulerData_.setCell(i, j, cell);
 			}
 		}
-
-		// Apply transmissive boundary conditions.
-		//for (int i = 1; i < nCells + 1; ++i) {
-		//	// x-boundaries.
-		//	eulerData_.setQuantity(0, i, eulerData_[1][i]);
-		//	eulerData_.setQuantity(nCells_ + 1, i, eulerData_[nCells_][i]);
-
-		//	// y-boundaries.
-		//	//eulerData_.setQuantity(i, 0, eulerData_[i][1]);
-		//	//eulerData_.setQuantity(i, nCells_ + 1, eulerData_[i][nCells_]);
-		//}
 	}
 
 	// Evolve the simulation one timestep.
@@ -105,9 +96,9 @@ namespace fvm {
 		tNow_ += dt_;
 
 		// Apply boundary conditions in x.
-		for (int j = 1; j < nCells_ + 1; ++j) {
-			eulerData_.setQuantity(0, j, eulerData_[1][j]);
-			eulerData_.setQuantity(nCells_ + 1, j, eulerData_[nCells_][j]);
+		for (int j = 0; j < nCells_ + 1; ++j) {
+			eulerData_.setCell(0, j, eulerData_[1][j]);
+			eulerData_.setCell(nCells_ + 1, j, eulerData_[nCells_][j]);
 		}
 
 		calcFluxGrid_(Axis::x);
@@ -115,16 +106,23 @@ namespace fvm {
 		// Apply finite difference calculations in x.
 		for (int i = 1; i < nCells_ + 1; ++i) {
 			for (int j = 1; j < nCells_ + 1; ++j) {
-				Cell newCell = eulerData_[i][j] - (dt_/dx_) * (flux_[i][j] - flux_[i - 1][j]);
+				Cell diff = (dt_/dx_) * (flux_[i][j] - flux_[i - 1][j]);
 
-				eulerData_.setQuantity(i, j, newCell);
+				// FIXME: DEBUG: Remove after debugging
+				if (diff != Cell{}) {
+					std::cerr << i << " " << j << "\n" << diff << "\n";
+				}
+
+				Cell newCell = eulerData_[i][j] - diff;
+
+				eulerData_.setCell(i, j, newCell);
 			}
 		}
 
 		// Apply boundary conditions in y.
-		for (int i = 1; i < nCells_ + 1; ++i) {
-			eulerData_.setQuantity(i, 0, eulerData_[i][1]);
-			eulerData_.setQuantity(i, nCells_ + 1, eulerData_[i][nCells_]);
+		for (int i = 0; i < nCells_ + 1; ++i) {
+			eulerData_.setCell(i, 0, eulerData_[i][1]);
+			eulerData_.setCell(i, nCells_ + 1, eulerData_[i][nCells_]);
 		}
 
 		calcFluxGrid_(Axis::y);
@@ -132,9 +130,10 @@ namespace fvm {
 		// Apply finite difference calculations in y.
 		for (int i = 1; i < nCells_ + 1; ++i) {
 			for (int j = 1; j < nCells_ + 1; ++j) {
-				Cell newCell = eulerData_[i][j] - (dt_/dy_) * (flux_[i][j] - flux_[i][j - 1]);
+				Cell diff = (dt_/dy_) * (flux_[i][j] - flux_[i][j - 1]);
+				Cell newCell = eulerData_[i][j] - diff;
 
-				eulerData_.setQuantity(i, j, newCell);
+				eulerData_.setCell(i, j, newCell);
 			}
 		}
 	}
@@ -180,7 +179,7 @@ namespace fvm {
 			// Calculate boundary fluxes.
 			switch (ax) {
 				case Axis::x:
-					for (int j = 0; j < nCells_ + 1; ++j) {
+					for (int j = 1; j < nCells_ + 1; ++j) {
 						flux_[0][j] = calcFlux_(eulerData_[0][j], eulerData_[1][j], Axis::x);
 						flux_[nCells_][j] = calcFlux_(eulerData_[nCells_][j], eulerData_[nCells_ + 1][j], Axis::x);
 					}
@@ -188,7 +187,7 @@ namespace fvm {
 					break;
 
 				case Axis::y:
-					for (int i = 0; i < nCells_ + 1; ++i) {
+					for (int i = 1; i < nCells_ + 1; ++i) {
 						flux_[i][0] = calcFlux_(eulerData_[i][0], eulerData_[i][1], Axis::y);
 						flux_[i][nCells_] = calcFlux_(eulerData_[i][nCells_], eulerData_[i][nCells_ + 1], Axis::y);
 					}
@@ -215,44 +214,47 @@ namespace fvm {
 			}
 
 			// Calculate fluxes with the half-evolved interface values.
-			for (int i = 1; i < nCells_; ++i) {
-				for (int j = 1; j < nCells_ + 1; ++j) {
-					Cell uRight = rSlopeIfaces_[i][j];
-					Cell uNextLeft {};
+			Cell uRight {}, uNextLeft {};
 
-					switch (ax) {
-						case Axis::x:
-							uNextLeft = lSlopeIfaces_[i + 1][j];
-							break;
-
-						case Axis::y:
-							uNextLeft = lSlopeIfaces_[i][j + 1];
-							break;
-					}
-
-					flux_[i][j] = calcFlux_(uRight, uNextLeft, ax);
-				}
-			}
-
-		} else {
 			switch (ax) {
 				case Axis::x:
 					for (int i = 0; i < nCells_ + 1; ++i) {
-						for (int j = 1; j < nCells_ + 1; ++j) {
-							flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + 1][j], ax);
+						for (int j = 0; j < nCells_ + 1; ++j) {
+							uRight = rSlopeIfaces_[i][j];
+							uNextLeft = lSlopeIfaces_[i + 1][j];
+
+							flux_[i][j] = calcFlux_(uRight, uNextLeft, ax);
 						}
 					}
 
 					break;
 
 				case Axis::y:
-					for (int i = 1; i < nCells_ + 1; ++i) {
+					for (int i = 0; i < nCells_ + 1; ++i) {
 						for (int j = 0; j < nCells_ + 1; ++j) {
-							flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i][j + 1], ax);
+							uRight = rSlopeIfaces_[i][j];
+							uNextLeft = lSlopeIfaces_[i][j + 1];
+
+							flux_[i][j] = calcFlux_(uRight, uNextLeft, ax);
 						}
 					}
 
 					break;
+			}
+
+		} else {
+			for (int i = 0; i < nCells_ + 1; ++i) {
+				for (int j = 0; j < nCells_ + 1; ++j) {
+					switch (ax) {
+						case Axis::x:
+							flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + 1][j], ax);
+							break;
+
+						case Axis::y:
+							flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i][j + 1], ax);
+							break;
+					}
+				}
 			}
 		}
 	}
@@ -365,7 +367,7 @@ namespace fvm {
 		double rhoVX = u[moIndexX];
 		double rhoVY = u[moIndexY];
 		double e = u[eIndex];
-		double p = (gamma_ - 1) * (e - (rhoVX*rhoVX)/(2*rho));
+		double p = (gamma_ - 1) * (e - (rhoVX*rhoVX + rhoVY*rhoVY)/(2*rho));
 
 		switch (ax) {
 			case Axis::x:
@@ -434,6 +436,7 @@ namespace fvm {
 	}
 
 	// TODO: Make axis-specific.
+	// FIXME: Broken in 2D.
 	Cell Simulation::hllcFlux_(const Cell& uLeft, const Cell& uRight, Axis ax) {
 		Cell flux;
 

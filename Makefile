@@ -37,7 +37,7 @@ run:
 
 plot:
 	./$(BIN)
-	./*.plt 2> /dev/null
+	./*.plt #2> /dev/null
 
 docs:
 	doxygen Doxyfile
