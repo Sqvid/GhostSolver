@@ -209,14 +209,12 @@ namespace fvm {
 			}
 
 			// Calculate fluxes with the half-evolved interface values.
-			Cell uRight {}, uNextLeft {};
-
 			switch (ax) {
 				case Axis::x:
 					for (int i = 1; i < nCells_; ++i) {
 						for (int j = 1; j < nCells_ + 1; ++j) {
-							uRight = rSlopeIfaces_[i][j];
-							uNextLeft = lSlopeIfaces_[i + 1][j];
+							Cell uRight = rSlopeIfaces_[i][j];
+							Cell uNextLeft = lSlopeIfaces_[i + 1][j];
 
 							flux_[i][j] = calcFlux_(uRight, uNextLeft, ax);
 						}
@@ -229,8 +227,8 @@ namespace fvm {
 					// extra ghost cells.
 					for (int i = 1; i < nCells_ + 1; ++i) {
 						for (int j = 1; j < nCells_; ++j) {
-							uRight = rSlopeIfaces_[i][j];
-							uNextLeft = lSlopeIfaces_[i][j + 1];
+							Cell uRight = rSlopeIfaces_[i][j];
+							Cell uNextLeft = lSlopeIfaces_[i][j + 1];
 
 							flux_[i][j] = calcFlux_(uRight, uNextLeft, ax);
 						}
@@ -297,7 +295,6 @@ namespace fvm {
 		return cfl_ / max;
 	}
 
-	// TODO: Move this function into Simulation class.
 	void Simulation::linearReconst_(Axis ax) {
 		// Alias the numerical data.
 		eulerData_.setMode(EulerDataMode::conserved);
@@ -414,7 +411,7 @@ namespace fvm {
 
 		int dIndex = static_cast<size_t>(ConservedQuant::density);
 		int moIndexX = static_cast<int>(ConservedQuant::momentumX);
-		int moIndexY = static_cast<int>(ConservedQuant::momentumX);
+		int moIndexY = static_cast<int>(ConservedQuant::momentumY);
 		int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		auto rho = u[dIndex];
@@ -432,8 +429,6 @@ namespace fvm {
 		return prim;
 	}
 
-	// TODO: Make axis-specific.
-	// FIXME: Broken in 2D.
 	Cell Simulation::hllcFlux_(const Cell& uLeft, const Cell& uRight, Axis ax) {
 		Cell flux;
 
@@ -451,44 +446,74 @@ namespace fvm {
 		int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		// Alias quantities for convenience.
-		double dL = primL[dIndex];
+		double rhoL = primL[dIndex];
 		double vxL = primL[vIndexX];
 		double vyL = primL[vIndexY];
 		double pL = primL[pIndex];
 
-		double dR = primR[dIndex];
+		double rhoR = primR[dIndex];
 		double vxR = primR[vIndexX];
 		double vyR = primR[vIndexY];
 		double pR = primR[pIndex];
 
-		double cSoundL = std::sqrt((gamma_ * pL) / dL);
-		double cSoundR = std::sqrt((gamma_ * pR) / dR);
+		// Sound speed estimates.
+		double cSoundL = std::sqrt((gamma_ * pL) / rhoL);
+		double cSoundR = std::sqrt((gamma_ * pR) / rhoR);
 
-		// Find approximate left and right sound speeds.
-		double sPlus = std::max(std::fabs(vxL) + cSoundL, std::fabs(vxR) + cSoundR);
+		double sPlus {}, sL {}, sR {}, sStar {};
+		Cell hllcL {}, hllcR {};
+		switch (ax) {
+			case Axis::x:
+				// Find approximate left and right sound speeds.
+				sPlus = std::max(std::fabs(vxL) + cSoundL, std::fabs(vxR) + cSoundR);
+				sL = -sPlus;
+				sR = sPlus;
 
-		double sL = -sPlus;
-		double sR = sPlus;
+				// Approximate contact velocity in x.
+				sStar = (pR - pL + rhoL*vxL*(sL - vxL) - rhoR*vxR*(sR - vxR))
+					/ (rhoL*(sL - vxL) - rhoR*(sR - vxR));
 
-		// Approximate contact sound speed.
-		double sStar = (pR - pL + dL*vxL*(sL - vxL) - dR*vxR*(sR - vxR))
-					/ (dL*(sL - vxL) - dR*(sR - vxR));
+				// Approximate intermediate x-states.
+				hllcL = rhoL * ((sL - vxL) / (sL - sStar))
+						* Cell({1, sStar, vyL,
+						uLeft[eIndex]/rhoL + (sStar - vxL)*(sStar + pL/(rhoL * (sL - vxL)))});
+
+				hllcR = rhoR * ((sR - vxR) / (sR - sStar))
+					* Cell({1, sStar, vyR,
+					uRight[eIndex]/rhoR + (sStar - vxR)*(sStar + pR/(rhoR * (sR - vxR)))});
+
+				break;
+
+			case Axis::y:
+				// Find approximate left and right sound speeds.
+				sPlus = std::max(std::fabs(vyL) + cSoundL, std::fabs(vyR) + cSoundR);
+				sL = -sPlus;
+				sR = sPlus;
+
+				// Approximate contact velocity in y.
+				sStar = (pR - pL + rhoL*vyL*(sL - vyL) - rhoR*vyR*(sR - vyR))
+					/ (rhoL*(sL - vyL) - rhoR*(sR - vyR));
+
+				// Approximate intermediate y-states.
+				hllcL = rhoL * ((sL - vyL) / (sL - sStar))
+						* Cell({1, vxL, sStar,
+						uLeft[eIndex]/rhoL + (sStar - vyL)*(sStar + pL/(rhoL * (sL - vyL)))});
+
+				hllcR = rhoR * ((sR - vyR) / (sR - sStar))
+					* Cell({1, vxR, sStar,
+					uRight[eIndex]/rhoR + (sStar - vyR)*(sStar + pR/(rhoR * (sR - vyR)))});
+
+
+				break;
+		}
 
 		if ( sL >= 0 ) {
 			flux = fluxExpr_(uLeft, ax);
 
 		} else if (sStar >= 0) {
-			Cell hllcL = dL * ((sL - vxL) / (sL - sStar))
-					* Cell({1, sStar, vyL,
-					uLeft[eIndex]/dL + (sStar - vxL)*(sStar + pL/(dL * (sL - vxL)))});
-
 			flux = fluxExpr_(uLeft, ax) + sL * (hllcL - uLeft);
 
 		} else if (sR >= 0) {
-			Cell hllcR = dR * ((sR - vxR) / (sR - sStar))
-					* Cell({1, sStar, vyR,
-					uRight[eIndex]/dR + (sStar - vxR)*(sStar + pR/(dR * (sR - vxR)))});
-
 			flux = fluxExpr_(uRight, ax) + sR * (hllcR - uRight);
 
 		} else {
