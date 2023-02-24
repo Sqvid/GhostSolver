@@ -77,14 +77,17 @@ namespace fvm {
 		}
 	}
 
-	void EulerData::makeConserved_() {
-		int dIndex = static_cast<int>(PrimitiveQuant::density);
-		int vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
-		int vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
-		int pIndex = static_cast<int>(PrimitiveQuant::pressure);
+	// Private member function definitions:
+	// ====================================================================== //
 
-		for (size_t i = 0; i < data_.size(); ++i) {
-			for (size_t j = 0; j < data_.size(); ++j) {
+	void EulerData::makeConserved_() {
+		constexpr int dIndex = static_cast<int>(PrimitiveQuant::density);
+		constexpr int vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
+		constexpr int vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
+		constexpr int pIndex = static_cast<int>(PrimitiveQuant::pressure);
+
+		for (size_t i = 0; i < this->xSize(); ++i) {
+			for (size_t j = 0; j < this->ySize(); ++j) {
 				auto rho = data_[i][j][dIndex];
 				auto p = data_[i][j][pIndex];
 
@@ -104,10 +107,10 @@ namespace fvm {
 	}
 
 	void EulerData::makePrimitive_() {
-		int dIndex = static_cast<int>(ConservedQuant::density);
-		int moIndexX = static_cast<int>(ConservedQuant::momentumX);
-		int moIndexY = static_cast<int>(ConservedQuant::momentumY);
-		int eIndex = static_cast<int>(ConservedQuant::energy);
+		constexpr int dIndex = static_cast<int>(ConservedQuant::density);
+		constexpr int moIndexX = static_cast<int>(ConservedQuant::momentumX);
+		constexpr int moIndexY = static_cast<int>(ConservedQuant::momentumY);
+		constexpr int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		for (size_t i = 0; i < this->xSize(); ++i) {
 			for (size_t j = 0; j < this->ySize(); ++j) {

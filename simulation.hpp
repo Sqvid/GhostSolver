@@ -89,6 +89,8 @@ namespace fvm {
 		private:
 			// Private member data
 			int nCells_;
+			int nGhost_;
+			int nTotal_;
 			double xStart_;
 			double xEnd_;
 			double yStart_;
