@@ -1,7 +1,5 @@
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
-#include <iostream>
 #include <stdexcept>
 
 #include "simulation.hpp"

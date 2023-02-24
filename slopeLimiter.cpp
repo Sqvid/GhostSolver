@@ -1,8 +1,5 @@
 #include <algorithm>
 #include <cmath>
-#include <functional>
-#include <iostream>
-#include <stdexcept>
 
 #include "eulerData.hpp"
 #include "simulation.hpp"

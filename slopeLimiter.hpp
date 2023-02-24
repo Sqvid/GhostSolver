@@ -1,6 +1,8 @@
 #ifndef GHOSTSOLVER_SLOPELIMITER_HPP
 #define GHOSTSOLVER_SLOPELIMITER_HPP
 
+#include <cstddef>
+
 #include "eulerData.hpp"
 
 using std::size_t;
