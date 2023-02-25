@@ -32,6 +32,9 @@ clean:
 tidy:
 	$(RM) *.o
 
+rebuild: clean
+rebuild: $(BIN)
+
 run:
 	./$(BIN)
 
