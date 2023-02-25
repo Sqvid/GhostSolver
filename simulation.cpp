@@ -11,10 +11,10 @@ namespace fvm {
 	// Constructor:
 	Simulation::Simulation(int nCells, double xStart, double xEnd,
 			double tStart, double tEnd, double cfl, double gamma,
-			std::function<double (double)> densityDist,
-			std::function<double (double)> velocityDistX,
-			std::function<double (double)> velocityDistY,
-			std::function<double (double)> pressureDist,
+			std::function<double (double, double)> densityDist,
+			std::function<double (double, double)> velocityDistX,
+			std::function<double (double, double)> velocityDistY,
+			std::function<double (double, double)> pressureDist,
 			FluxScheme fluxScheme,
 			SlopeLimiter slType)
 			// Initialiser list
@@ -79,10 +79,10 @@ namespace fvm {
 				double y = yStart_ + (j - nGhost_ + 0.5) * dy_;
 
 				Cell cell;
-				cell[dIndex] = densityDist(x);
-				cell[vIndexX] = velocityDistX(x);
-				cell[vIndexY] = velocityDistY(y);
-				cell[pIndex] = pressureDist(x);
+				cell[dIndex] = densityDist(x, y);
+				cell[vIndexX] = velocityDistX(x, y);
+				cell[vIndexY] = velocityDistY(x, y);
+				cell[pIndex] = pressureDist(x, y);
 
 				eulerData_.setCell(i, j, cell);
 			}
