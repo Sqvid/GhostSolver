@@ -32,7 +32,7 @@ namespace fvm {
 		}
 
 		nCells_ = nCells;
-		nGhost_ = 1;
+		nGhost_ = 2;
 		nTotal_ = nCells_ + 2*nGhost_;
 		xStart_ = xStart;
 		xEnd_ = xEnd;
@@ -174,27 +174,6 @@ namespace fvm {
 
 	void Simulation::calcFluxGrid_(Axis ax) {
 		if (slType_ != SlopeLimiter::none) {
-			// FIXME: Calculate these from reconstructed boundary
-			// cells.
-			// Calculate boundary fluxes.
-			switch (ax) {
-				case Axis::x:
-					for (int j = nGhost_; j < nCells_ + nGhost_; ++j) {
-						flux_[0][j] = calcFlux_(eulerData_[0][j], eulerData_[1][j], Axis::x);
-						flux_[nCells_][j] = calcFlux_(eulerData_[nCells_][j], eulerData_[nCells_ + 1][j], Axis::x);
-					}
-
-					break;
-
-				case Axis::y:
-					for (int i = nGhost_; i < nCells_ + nGhost_; ++i) {
-						flux_[i][0] = calcFlux_(eulerData_[i][0], eulerData_[i][1], Axis::y);
-						flux_[i][nCells_] = calcFlux_(eulerData_[i][nCells_], eulerData_[i][nCells_ + 1], Axis::y);
-					}
-
-					break;
-			}
-
 			// Linearly reconstruct the data and store interface values in
 			// lSlopeIfaces_, and rSlopeIfaces_.
 			linearReconst_(ax);
@@ -214,12 +193,10 @@ namespace fvm {
 			}
 
 			// Calculate fluxes with the half-evolved interface values.
-			// FIXME: Adjust boundary when reconstruction is fixed with
-			// extra ghost cells.
 			switch (ax) {
 				case Axis::x:
-					for (int i = 1; i < nCells_; ++i) {
-						for (int j = 1; j < nCells_ + 1; ++j) {
+					for (int i = nGhost_ - 1; i < nCells_ + nGhost_; ++i) {
+						for (int j = nGhost_ - 1; j < nCells_ + nGhost_; ++j) {
 							Cell uRight = rSlopeIfaces_[i][j];
 							Cell uNextLeft = lSlopeIfaces_[i + 1][j];
 
@@ -230,8 +207,8 @@ namespace fvm {
 					break;
 
 				case Axis::y:
-					for (int i = 1; i < nCells_ + 1; ++i) {
-						for (int j = 1; j < nCells_; ++j) {
+					for (int i = nGhost_ - 1; i < nCells_ + nGhost_; ++i) {
+						for (int j = nGhost_ - 1; j < nCells_ + nGhost_; ++j) {
 							Cell uRight = rSlopeIfaces_[i][j];
 							Cell uNextLeft = lSlopeIfaces_[i][j + 1];
 
@@ -243,18 +220,24 @@ namespace fvm {
 			}
 
 		} else {
-			for (int i = nGhost_ - 1; i < nCells_ + nGhost_; ++i) {
-				for (int j = nGhost_ - 1; j < nCells_ + nGhost_; ++j) {
-					switch (ax) {
-						case Axis::x:
+			switch (ax) {
+				case Axis::x:
+					for (int i = nGhost_ - 1; i < nCells_ + nGhost_; ++i) {
+						for (int j = nGhost_ - 1; j < nCells_ + nGhost_; ++j) {
 							flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + 1][j], ax);
-							break;
-
-						case Axis::y:
-							flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i][j + 1], ax);
-							break;
+						}
 					}
-				}
+
+					break;
+
+				case Axis::y:
+					for (int i = nGhost_ - 1; i < nCells_ + nGhost_; ++i) {
+						for (int j = nGhost_ - 1; j < nCells_ + nGhost_; ++j) {
+							flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i][j + 1], ax);
+						}
+					}
+
+					break;
 			}
 		}
 	}
@@ -312,8 +295,8 @@ namespace fvm {
 		constexpr int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		// Calculate reconstructed interface values.
-		for (size_t i = 1; i < u.size() - 1; ++i) {
-			for (size_t j = 1; j < u[0].size() - 1; ++j) {
+		for (int i = nGhost_ - 1; i < nCells_ + nGhost_ + 1; ++i) {
+			for (int j = nGhost_ - 1; j < nCells_ + nGhost_ + 1; ++j) {
 				Cell deltaLeft {};
 				Cell deltaRight {};
 
