@@ -13,7 +13,7 @@ do for [i=1:numFiles] {
 	nBlocks = STATS_blocks
 
 	do for [j=1:nBlocks] {
-		set multiplot layout 4,1
+		set multiplot layout 2,2
 
 		set title sprintf("Dataset %d: density", i)
 		splot file("dat", i) index j-1 u 1:2:3 w l lt rgb "blue"
