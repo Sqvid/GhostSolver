@@ -1,7 +1,7 @@
 #!/bin/env gnuplot
 reset session
 
-numFiles = 5
+numFiles = 1
 
 file(ft, n) = sprintf("test%d.%s", n, ft)
 
