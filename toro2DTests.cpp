@@ -14,14 +14,14 @@ double cylExplVelocityX(double x, double y) {
 	x = 0;
 	y = 0;
 
-	return 0;
+	return x + y;
 }
 
 double cylExplVelocityY(double x, double y) {
 	x = 0;
 	y = 0;
 
-	return 0;
+	return x + y;
 }
 
 double cylExplPressure(double x, double y) {
