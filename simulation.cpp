@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <stdexcept>
+#include <vector>
 
 #include "simulation.hpp"
 #include "slopeLimiter.hpp"
@@ -32,8 +34,8 @@ namespace fvm {
 		}
 
 		nCells_ = nCells;
-		nGhost_ = 2;
-		nTotal_ = nCells_ + 2*nGhost_;
+		nBoundary_ = 2;
+		nTotal_ = nCells_ + 2*nBoundary_;
 		xStart_ = xStart;
 		xEnd_ = xEnd;
 		yStart_ = xStart_;
@@ -72,11 +74,11 @@ namespace fvm {
 		// Populate the solution space with the initial function.
 		for (size_t i = 0; i < eulerData_.xSize(); ++i) {
 			// ith cell centre x-position.
-			double x = xStart_ + (i - nGhost_ + 0.5) * dx_;
+			double x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
 
 			for (size_t j = 0; j < eulerData_.ySize(); ++j) {
 				// ith cell centre y-position.
-				double y = yStart_ + (j - nGhost_ + 0.5) * dy_;
+				double y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
 
 				Cell cell;
 				cell[dIndex] = densityDist(x, y);
@@ -98,18 +100,18 @@ namespace fvm {
 		tNow_ += dt_;
 
 		// Apply boundary conditions in x.
-		for (int i = 0; i < nGhost_; ++i) {
-			for (int j = nGhost_; j < nCells_ + nGhost_; ++j) {
-				eulerData_.setCell(i, j, eulerData_[nGhost_][j]);
-				eulerData_.setCell(nCells_ + nGhost_ + i, j, eulerData_[nCells_ + nGhost_ - 1][j]);
+		for (int i = 0; i < nBoundary_; ++i) {
+			for (int j = nBoundary_; j < nCells_ + nBoundary_; ++j) {
+				eulerData_.setCell(i, j, eulerData_[nBoundary_][j]);
+				eulerData_.setCell(nCells_ + nBoundary_ + i, j, eulerData_[nCells_ + nBoundary_ - 1][j]);
 			}
 		}
 
 		calcFluxGrid_(Axis::x);
 
 		// Apply finite difference calculations in x.
-		for (int i = nGhost_; i < nCells_ + nGhost_; ++i) {
-			for (int j = nGhost_; j < nCells_ + nGhost_; ++j) {
+		for (int i = nBoundary_; i < nCells_ + nBoundary_; ++i) {
+			for (int j = nBoundary_; j < nCells_ + nBoundary_; ++j) {
 				Cell diff = (dt_/dx_) * (flux_[i][j] - flux_[i - 1][j]);
 				Cell newCell = eulerData_[i][j] - diff;
 
@@ -118,18 +120,18 @@ namespace fvm {
 		}
 
 		// Apply boundary conditions in y.
-		for (int i = nGhost_; i < nCells_ + nGhost_; ++i) {
-			for (int j = 0; j < nGhost_; ++j) {
-				eulerData_.setCell(i, j, eulerData_[i][nGhost_]);
-				eulerData_.setCell(i, nCells_ + nGhost_ + j, eulerData_[i][nCells_ + nGhost_ - 1]);
+		for (int i = nBoundary_; i < nCells_ + nBoundary_; ++i) {
+			for (int j = 0; j < nBoundary_; ++j) {
+				eulerData_.setCell(i, j, eulerData_[i][nBoundary_]);
+				eulerData_.setCell(i, nCells_ + nBoundary_ + j, eulerData_[i][nCells_ + nBoundary_ - 1]);
 			}
 		}
 
 		calcFluxGrid_(Axis::y);
 
 		// Apply finite difference calculations in y.
-		for (int i = nGhost_; i < nCells_ + nGhost_; ++i) {
-			for (int j = nGhost_; j < nCells_ + nGhost_; ++j) {
+		for (int i = nBoundary_; i < nCells_ + nBoundary_; ++i) {
+			for (int j = nBoundary_; j < nCells_ + nBoundary_; ++j) {
 				Cell diff = (dt_/dy_) * (flux_[i][j] - flux_[i][j - 1]);
 				Cell newCell = eulerData_[i][j] - diff;
 
@@ -143,11 +145,11 @@ namespace fvm {
 		// Output data in primitive form.
 		sim.eulerData_.setMode(EulerDataMode::primitive);
 
-		for (int i = sim.nGhost_; i < sim.nCells_ + sim.nGhost_; ++i) {
-			double x = sim.xStart_ + (i - sim.nGhost_) * sim.dx_;
+		for (int i = sim.nBoundary_; i < sim.nCells_ + sim.nBoundary_; ++i) {
+			double x = sim.xStart_ + (i - sim.nBoundary_) * sim.dx_;
 
-			for (int j = sim.nGhost_; j < sim.nCells_ + sim.nGhost_; ++j) {
-				double y = sim.yStart_ + (j - sim.nGhost_) * sim.dy_;
+			for (int j = sim.nBoundary_; j < sim.nCells_ + sim.nBoundary_; ++j) {
+				double y = sim.yStart_ + (j - sim.nBoundary_) * sim.dy_;
 
 				// Indices of primitive quantities.
 				constexpr int dIndex = static_cast<int>(PrimitiveQuant::density);
@@ -179,8 +181,8 @@ namespace fvm {
 			linearReconst_(ax);
 
 			// Half-timestep evolution.
-			for (int i = nGhost_; i < nCells_ + nGhost_; ++i) {
-				for (int j = nGhost_; j < nCells_ + nGhost_; ++j) {
+			for (int i = nBoundary_; i < nCells_ + nBoundary_; ++i) {
+				for (int j = nBoundary_; j < nCells_ + nBoundary_; ++j) {
 					Cell& uLeft = lSlopeIfaces_[i][j];
 					Cell& uRight = rSlopeIfaces_[i][j];
 
@@ -195,8 +197,8 @@ namespace fvm {
 			// Calculate fluxes with the half-evolved interface values.
 			switch (ax) {
 				case Axis::x:
-					for (int i = nGhost_ - 1; i < nCells_ + nGhost_; ++i) {
-						for (int j = nGhost_ - 1; j < nCells_ + nGhost_; ++j) {
+					for (int i = nBoundary_ - 1; i < nCells_ + nBoundary_; ++i) {
+						for (int j = nBoundary_ - 1; j < nCells_ + nBoundary_; ++j) {
 							Cell uRight = rSlopeIfaces_[i][j];
 							Cell uNextLeft = lSlopeIfaces_[i + 1][j];
 
@@ -207,8 +209,8 @@ namespace fvm {
 					break;
 
 				case Axis::y:
-					for (int i = nGhost_ - 1; i < nCells_ + nGhost_; ++i) {
-						for (int j = nGhost_ - 1; j < nCells_ + nGhost_; ++j) {
+					for (int i = nBoundary_ - 1; i < nCells_ + nBoundary_; ++i) {
+						for (int j = nBoundary_ - 1; j < nCells_ + nBoundary_; ++j) {
 							Cell uRight = rSlopeIfaces_[i][j];
 							Cell uNextLeft = lSlopeIfaces_[i][j + 1];
 
@@ -222,8 +224,8 @@ namespace fvm {
 		} else {
 			switch (ax) {
 				case Axis::x:
-					for (int i = nGhost_ - 1; i < nCells_ + nGhost_; ++i) {
-						for (int j = nGhost_ - 1; j < nCells_ + nGhost_; ++j) {
+					for (int i = nBoundary_ - 1; i < nCells_ + nBoundary_; ++i) {
+						for (int j = nBoundary_ - 1; j < nCells_ + nBoundary_; ++j) {
 							flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i + 1][j], ax);
 						}
 					}
@@ -231,8 +233,8 @@ namespace fvm {
 					break;
 
 				case Axis::y:
-					for (int i = nGhost_ - 1; i < nCells_ + nGhost_; ++i) {
-						for (int j = nGhost_ - 1; j < nCells_ + nGhost_; ++j) {
+					for (int i = nBoundary_ - 1; i < nCells_ + nBoundary_; ++i) {
+						for (int j = nBoundary_ - 1; j < nCells_ + nBoundary_; ++j) {
 							flux_[i][j] = calcFlux_(eulerData_[i][j], eulerData_[i][j + 1], ax);
 						}
 					}
@@ -256,8 +258,8 @@ namespace fvm {
 		constexpr int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		double max = 0;
-		for (int i = nGhost_; i < nCells_ + nGhost_; ++i) {
-			for (int j = nGhost_; j < nCells_ + nGhost_; ++j) {
+		for (int i = nBoundary_; i < nCells_ + nBoundary_; ++i) {
+			for (int j = nBoundary_; j < nCells_ + nBoundary_; ++j) {
 				Cell cell = eulerData_[i][j];
 
 				double rho = cell[dIndex];
@@ -295,8 +297,8 @@ namespace fvm {
 		constexpr int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		// Calculate reconstructed interface values.
-		for (int i = nGhost_ - 1; i < nCells_ + nGhost_ + 1; ++i) {
-			for (int j = nGhost_ - 1; j < nCells_ + nGhost_ + 1; ++j) {
+		for (int i = nBoundary_ - 1; i < nCells_ + nBoundary_ + 1; ++i) {
+			for (int j = nBoundary_ - 1; j < nCells_ + nBoundary_ + 1; ++j) {
 				Cell deltaLeft {};
 				Cell deltaRight {};
 
@@ -534,5 +536,53 @@ namespace fvm {
 		}
 
 		return flux;
+	}
+
+	void Simulation::findInterface() {
+		// Map of positions inside and outside level-set function;
+		std::vector<std::vector<int>> lsMap;
+
+		// Will track the positons that are inside (1) and outside (0) our
+		// level-set function.
+		lsMap.resize(nTotal_);
+		for (auto& col : lsMap) {
+			col.resize(nTotal_);
+		}
+
+		// Map of interface cells. Interfaces are represented as 1's; all other
+		// cells are 0.
+		auto ifMap = lsMap;
+
+		auto circleLS = [](double x, double y) {
+			auto x0 {0.0}, y0 {0.0}, r {.4};
+
+			return r*r - (x - x0)*(x - x0) - (y - y0)*(y - y0);
+		};
+
+		// Find all cells on or inside the boundary.
+		for (int i = 0; i < nTotal_; ++i) {
+			auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+
+			for (int j = 0; j < nTotal_; ++j) {
+				auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
+
+				lsMap[i][j] = (circleLS(x, y) >= 0);
+			}
+		}
+
+		// Find interface cells.
+		// This works by finding cells that have a different sign from one or
+		// more of their neighbours.
+		for (int i = 1; i < nTotal_ - 1; ++i) {
+			for (int j = 1; j < nTotal_ - 1; ++j) {
+				// Since lsMap was populated with 0's and 1's, we can use some
+				// boolean logic here.
+				if (lsMap[i][j] && !((lsMap[i][j + 1] && lsMap[i][j - 1])
+							&& (lsMap[i + 1][j] && lsMap[i - 1][j]))) {
+
+					ifMap[i][j] = 1;
+				}
+			}
+		}
 	}
 }

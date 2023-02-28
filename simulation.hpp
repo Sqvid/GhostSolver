@@ -81,6 +81,8 @@ namespace fvm {
 
 			// Public member functions.
 			void step();
+			// TODO: Make private after testing.
+			void findInterface();
 
 			// Operator overloads.
 			const CellVector& operator[](size_t i) { return eulerData_[i]; }
@@ -89,7 +91,7 @@ namespace fvm {
 		private:
 			// Private member data
 			int nCells_;
-			int nGhost_;
+			int nBoundary_;
 			int nTotal_;
 			double xStart_;
 			double xEnd_;
