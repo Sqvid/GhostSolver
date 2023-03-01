@@ -11,15 +11,9 @@ void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
 	output << sim << "\n\n";
 
 	// Change variables to conserved for solving.
-	int nFrame = 0;
 	for (double t = sim.tStart(); t < sim.tEnd(); t = sim.tNow()) {
 		sim.step();
-		++nFrame;
-
-		if (nFrame % 5 == 0) {
-			// Change variables back to primitive for output.
-			output << sim << "\n\n";
-		}
+		output << sim << "\n\n";
 	}
 
 	output << sim;
