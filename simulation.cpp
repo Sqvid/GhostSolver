@@ -68,12 +68,6 @@ namespace fvm {
 			rSlopeIfaces_[i].resize(nTotal_);
 		}
 
-		// Indices for primitive quantities.
-		constexpr int dIndex = static_cast<int>(PrimitiveQuant::density);
-		constexpr int vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
-		constexpr int vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
-		constexpr int pIndex = static_cast<int>(PrimitiveQuant::pressure);
-
 		// Populate the solution space with the initial function.
 		for (size_t i = 0; i < eulerData_.xSize(); ++i) {
 			// ith cell centre x-position.
@@ -155,12 +149,6 @@ namespace fvm {
 
 			for (int j = sim.nBoundary_; j < sim.nCells_ + sim.nBoundary_; ++j) {
 				double y = sim.yStart_ + (j - sim.nBoundary_) * sim.dy_;
-
-				// Indices of primitive quantities.
-				constexpr int dIndex = static_cast<int>(PrimitiveQuant::density);
-				constexpr int vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
-				constexpr int vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
-				constexpr int pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
 				// Values of primitive quantities.
 				Cell cell = sim[i][j];
@@ -257,12 +245,6 @@ namespace fvm {
 	// Timestep is computed such that it is stable for the fastest
 	// information wave.
 	double Simulation::calcTimeStep_() {
-		// Indices for conserved quantities.
-		constexpr int dIndex = static_cast<int>(ConservedQuant::density);
-		constexpr int moIndexX = static_cast<int>(ConservedQuant::momentumX);
-		constexpr int moIndexY = static_cast<int>(ConservedQuant::momentumY);
-		constexpr int eIndex = static_cast<int>(ConservedQuant::energy);
-
 		double max = 0;
 		for (int i = nBoundary_; i < nCells_ + nBoundary_; ++i) {
 			for (int j = nBoundary_; j < nCells_ + nBoundary_; ++j) {
@@ -297,10 +279,6 @@ namespace fvm {
 		// Alias the numerical data.
 		eulerData_.setMode(EulerDataMode::conserved);
 		Grid& u = eulerData_.data();
-
-		// Index for energy. This is the quantity we are going to limit
-		// on.
-		constexpr int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		// Calculate reconstructed interface values.
 		for (int i = nBoundary_ - 1; i < nCells_ + nBoundary_ + 1; ++i) {
@@ -342,11 +320,6 @@ namespace fvm {
 	// Return the fluxes for the conserved quantities.
 	Cell Simulation::fluxExpr_(Cell u, Axis ax) {
 		Cell flux;
-
-		constexpr int dIndex = static_cast<int>(ConservedQuant::density);
-		constexpr int moIndexX = static_cast<int>(ConservedQuant::momentumX);
-		constexpr int moIndexY = static_cast<int>(ConservedQuant::momentumY);
-		constexpr int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		double rho = u[dIndex];
 
@@ -405,11 +378,6 @@ namespace fvm {
 		Cell prim;
 		prim = u;
 
-		constexpr int dIndex = static_cast<size_t>(ConservedQuant::density);
-		constexpr int moIndexX = static_cast<int>(ConservedQuant::momentumX);
-		constexpr int moIndexY = static_cast<int>(ConservedQuant::momentumY);
-		constexpr int eIndex = static_cast<int>(ConservedQuant::energy);
-
 		auto rho = u[dIndex];
 		auto rhoVX = u[moIndexX];
 		auto rhoVY = u[moIndexY];
@@ -431,15 +399,6 @@ namespace fvm {
 		// Make primitive version copies of the given cell values.
 		Cell primL = makePrimQuants(uLeft, gamma_);
 		Cell primR = makePrimQuants(uRight, gamma_);
-
-		// Indices for primitive quantities.
-		constexpr int dIndex = static_cast<int>(PrimitiveQuant::density);
-		constexpr int vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
-		constexpr int vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
-		constexpr int pIndex = static_cast<int>(PrimitiveQuant::pressure);
-
-		// Index for energy.
-		constexpr int eIndex = static_cast<int>(ConservedQuant::energy);
 
 		// Alias quantities for convenience.
 		double rhoL = primL[dIndex];

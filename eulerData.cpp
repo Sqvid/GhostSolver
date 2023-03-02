@@ -73,11 +73,6 @@ namespace fvm {
 	// ====================================================================== //
 
 	void EulerData::makeConserved_() {
-		constexpr int dIndex = static_cast<int>(PrimitiveQuant::density);
-		constexpr int vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
-		constexpr int vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
-		constexpr int pIndex = static_cast<int>(PrimitiveQuant::pressure);
-
 		for (size_t i = 0; i < this->xSize(); ++i) {
 			for (size_t j = 0; j < this->ySize(); ++j) {
 				auto rho = data_[i][j][dIndex];
@@ -99,11 +94,6 @@ namespace fvm {
 	}
 
 	void EulerData::makePrimitive_() {
-		constexpr int dIndex = static_cast<int>(ConservedQuant::density);
-		constexpr int moIndexX = static_cast<int>(ConservedQuant::momentumX);
-		constexpr int moIndexY = static_cast<int>(ConservedQuant::momentumY);
-		constexpr int eIndex = static_cast<int>(ConservedQuant::energy);
-
 		for (size_t i = 0; i < this->xSize(); ++i) {
 			for (size_t j = 0; j < this->ySize(); ++j) {
 				auto rho = data_[i][j][dIndex];

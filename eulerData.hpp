@@ -37,21 +37,23 @@ namespace fvm {
 		pressure
 	};
 
-	//constexpr auto dIndex = static_cast<int>(PrimitiveQuant::density);
-	//constexpr auto vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
-	//constexpr auto vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
-	//constexpr auto pIndex = static_cast<int>(PrimitiveQuant::pressure);
+	// Primitive indices.
+	constexpr auto dIndex = static_cast<int>(PrimitiveQuant::density);
+	constexpr auto vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
+	constexpr auto vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
+	constexpr auto pIndex = static_cast<int>(PrimitiveQuant::pressure);
 
 	enum class ConservedQuant {
-		density = 0,//dIndex,
-		momentumX ,//= vIndexX,
-		momentumY ,//= vIndexY,
-		energy//= pIndex
+		density = dIndex,
+		momentumX = vIndexX,
+		momentumY = vIndexY,
+		energy = pIndex
 	};
 
-	//constexpr auto moIndexX = static_cast<int>(ConservedQuant::momentumX);
-	//constexpr auto moIndexY = static_cast<int>(ConservedQuant::momentumY);
-	//constexpr auto eIndex = static_cast<int>(ConservedQuant::energy);
+	// Conservative indices.
+	constexpr auto moIndexX = static_cast<int>(ConservedQuant::momentumX);
+	constexpr auto moIndexY = static_cast<int>(ConservedQuant::momentumY);
+	constexpr auto eIndex = static_cast<int>(ConservedQuant::energy);
 
 	// The types of variables EulerData can hold.
 	enum class EulerDataMode {
