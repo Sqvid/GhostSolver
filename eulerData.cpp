@@ -52,14 +52,6 @@ namespace fvm {
 		return ans;
 	}
 
-	std::ostream& operator<<(std::ostream& stream, Cell cell) {
-		for (size_t i = 0; i < cell.size(); ++i) {
-			stream << cell[i];
-		}
-
-		return stream;
-	}
-
 	// Put the data in the correct mode.
 	void EulerData::setMode(EulerDataMode want) {
 		// The mode is already correctly set; return early.

@@ -29,8 +29,6 @@ namespace fvm {
 	Cell operator*(double a, Cell u);
 	Cell operator*(Cell u, double a);
 	Cell operator/(Cell u, double a);
-	// Output to std::ostream;
-	std::ostream& operator<<(std::ostream& stream, Cell cell);
 
 	enum class PrimitiveQuant {
 		density = 0,
@@ -39,12 +37,21 @@ namespace fvm {
 		pressure
 	};
 
+	//constexpr auto dIndex = static_cast<int>(PrimitiveQuant::density);
+	//constexpr auto vIndexX = static_cast<int>(PrimitiveQuant::velocityX);
+	//constexpr auto vIndexY = static_cast<int>(PrimitiveQuant::velocityY);
+	//constexpr auto pIndex = static_cast<int>(PrimitiveQuant::pressure);
+
 	enum class ConservedQuant {
-		density = 0,
-		momentumX,
-		momentumY,
-		energy
+		density = 0,//dIndex,
+		momentumX ,//= vIndexX,
+		momentumY ,//= vIndexY,
+		energy//= pIndex
 	};
+
+	//constexpr auto moIndexX = static_cast<int>(ConservedQuant::momentumX);
+	//constexpr auto moIndexY = static_cast<int>(ConservedQuant::momentumY);
+	//constexpr auto eIndex = static_cast<int>(ConservedQuant::energy);
 
 	// The types of variables EulerData can hold.
 	enum class EulerDataMode {

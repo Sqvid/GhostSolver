@@ -1,11 +1,14 @@
-#include <algorithm>
+#include <array>
 #include <cmath>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
 
+#include "levelSet.hpp"
 #include "simulation.hpp"
 #include "slopeLimiter.hpp"
+#include "twoVector.hpp"
 
 namespace fvm {
 	// Public member function definitions:
@@ -103,7 +106,8 @@ namespace fvm {
 		for (int i = 0; i < nBoundary_; ++i) {
 			for (int j = nBoundary_; j < nCells_ + nBoundary_; ++j) {
 				eulerData_.setCell(i, j, eulerData_[nBoundary_][j]);
-				eulerData_.setCell(nCells_ + nBoundary_ + i, j, eulerData_[nCells_ + nBoundary_ - 1][j]);
+				eulerData_.setCell(nCells_ + nBoundary_ + i, j,
+						eulerData_[nCells_ + nBoundary_ - 1][j]);
 			}
 		}
 
@@ -123,7 +127,8 @@ namespace fvm {
 		for (int i = nBoundary_; i < nCells_ + nBoundary_; ++i) {
 			for (int j = 0; j < nBoundary_; ++j) {
 				eulerData_.setCell(i, j, eulerData_[i][nBoundary_]);
-				eulerData_.setCell(i, nCells_ + nBoundary_ + j, eulerData_[i][nCells_ + nBoundary_ - 1]);
+				eulerData_.setCell(i, nCells_ + nBoundary_ + j,
+						eulerData_[i][nCells_ + nBoundary_ - 1]);
 			}
 		}
 
@@ -187,7 +192,8 @@ namespace fvm {
 					Cell& uRight = rSlopeIfaces_[i][j];
 
 					// FIXME: This will fail if dx != dy.
-					Cell cellChange = 0.5 * (dt_/dx_) * (fluxExpr_(uRight, ax) - fluxExpr_(uLeft, ax));
+					Cell cellChange = 0.5 * (dt_/dx_) * (fluxExpr_(uRight, ax)
+							- fluxExpr_(uLeft, ax));
 
 					uLeft = uLeft - cellChange;
 					uRight = uRight - cellChange;
@@ -538,7 +544,7 @@ namespace fvm {
 		return flux;
 	}
 
-	void Simulation::findInterface() {
+	std::list<std::array<int, 2>> Simulation::getInterfaceList() {
 		// Map of positions inside and outside level-set function;
 		std::vector<std::vector<int>> lsMap;
 
@@ -548,16 +554,6 @@ namespace fvm {
 		for (auto& col : lsMap) {
 			col.resize(nTotal_);
 		}
-
-		// Map of interface cells. Interfaces are represented as 1's; all other
-		// cells are 0.
-		auto ifMap = lsMap;
-
-		auto circleLS = [](double x, double y) {
-			auto x0 {0.0}, y0 {0.0}, r {.4};
-
-			return r*r - (x - x0)*(x - x0) - (y - y0)*(y - y0);
-		};
 
 		// Find all cells on or inside the boundary.
 		for (int i = 0; i < nTotal_; ++i) {
@@ -570,6 +566,10 @@ namespace fvm {
 			}
 		}
 
+		// List of interface cells. Each entry is a pair of i, j values that
+		// correspond to an interface cell.
+		std::list<std::array<int, 2>> ifList;
+
 		// Find interface cells.
 		// This works by finding cells that have a different sign from one or
 		// more of their neighbours.
@@ -580,9 +580,69 @@ namespace fvm {
 				if (lsMap[i][j] && !((lsMap[i][j + 1] && lsMap[i][j - 1])
 							&& (lsMap[i + 1][j] && lsMap[i - 1][j]))) {
 
-					ifMap[i][j] = 1;
+					ifList.push_back({i,j});
 				}
 			}
 		}
+
+		return ifList;
+	}
+
+	// Get cell values at point (x, y) via bilinear interpolation.
+	Cell Simulation::blInterpolate(TwoVector v) {
+		auto x = v.x;
+		auto y = v.y;
+
+		if (x < xStart_ || y < yStart_) {
+			throw std::logic_error("Interpolation point is outside domain!");
+		}
+
+		// Indices of lower-left cell-centre.
+		int i, j;
+
+		// x and y bounds of the lower-left cell-centre.
+		double x1, x2, y1, y2;
+
+		// Nearest cell wall, or centre.
+		int xMesh = static_cast<int>(2 * ((x - xStart_) / dx_));
+		int yMesh = static_cast<int>(2 * ((y - yStart_) / dy_));
+
+		// xMesh is even # of dxs => it is a cell wall.
+		if (xMesh % 2 == 0) {
+			i = (xMesh / 2) + nBoundary_ - 1;
+
+		// xMesh is the location of a cell centre.
+		} else {
+			i = ((xMesh + 1) / 2) + nBoundary_ - 1;
+		}
+
+		x1 = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+		x2 = x1 + dx_;
+
+		if (yMesh % 2 == 0) {
+			j = (yMesh / 2) + nBoundary_ - 1;
+
+		// xMesh is the location of a cell centre.
+		} else {
+			j = ((yMesh + 1) / 2) + nBoundary_ - 1;
+		}
+
+		y1 = yStart_ + (j - nBoundary_ + 0.5) * dy_;
+		y2 = y1 + dy_;
+
+		// Lower-left, upper-left, lower-right, and upper-right cell centres
+		// that bound our coordinate.
+		Cell ll = eulerData_[i][j];
+		Cell ul = eulerData_[i][j + 1];
+		Cell lr = eulerData_[i + 1][j];
+		Cell ur = eulerData_[i + 1][j + 1];
+
+		// Linear interpolation in x.
+		Cell lower = ((x2 - x) * ll + (x - x1) * lr) / (x2 - x1);
+		Cell upper = ((x2 - x) * ul + (x - x1) * ur) / (x2 - x1);
+
+		Cell interpolated =((y2 - y) * lower + (y - y1) * upper) / (y2 - y1);
+
+		return interpolated;
 	}
 }

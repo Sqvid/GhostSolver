@@ -3,12 +3,13 @@
 
 #include <array>
 #include <cstddef>
-#include <fstream>
 #include <functional>
+#include <list>
 #include <vector>
 
 #include "eulerData.hpp"
 #include "slopeLimiter.hpp"
+#include "twoVector.hpp"
 
 using std::size_t;
 
@@ -82,7 +83,9 @@ namespace fvm {
 			// Public member functions.
 			void step();
 			// TODO: Make private after testing.
-			void findInterface();
+			std::list<std::array<int, 2>> getInterfaceList();
+			Cell blInterpolate(TwoVector v);
+			void populateGhostCells();
 
 			// Operator overloads.
 			const CellVector& operator[](size_t i) { return eulerData_[i]; }
