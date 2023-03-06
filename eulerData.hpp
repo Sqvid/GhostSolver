@@ -2,11 +2,8 @@
 #define GHOSTSOLVER_FVMDATA_HPP
 
 #include <array>
-#include <cstddef>
 #include <ostream>
 #include <vector>
-
-using std::size_t;
 
 namespace fvm {
 	/** Array that stores the physical quantities of a cell. These
@@ -77,17 +74,17 @@ namespace fvm {
 
 			// EulerData accessors
 			// Getters
-			size_t xSize() { return data_.size(); }
-			size_t ySize() { return data_[0].size(); }
+			int xSize() { return data_.size(); }
+			int ySize() { return data_[0].size(); }
 			Grid& data() { return data_; }
 			EulerDataMode mode() { return mode_; }
 
 			// Setters
-			void setCell(size_t i, size_t j, Cell newValues) { data_[i][j] = newValues; }
+			void setCell(int i, int j, Cell newValues) { data_[i][j] = newValues; }
 			void setMode(EulerDataMode want);
 
 			// Operator overloads.
-			CellVector& operator[](size_t i) { return data_[i]; }
+			CellVector& operator[](int i) { return data_[i]; }
 
 		private:
 			// Private member data

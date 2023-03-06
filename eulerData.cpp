@@ -73,8 +73,8 @@ namespace fvm {
 	// ====================================================================== //
 
 	void EulerData::makeConserved_() {
-		for (size_t i = 0; i < this->xSize(); ++i) {
-			for (size_t j = 0; j < this->ySize(); ++j) {
+		for (int i = 0; i < xSize(); ++i) {
+			for (int j = 0; j < ySize(); ++j) {
 				auto rho = data_[i][j][dIndex];
 				auto p = data_[i][j][pIndex];
 
@@ -94,8 +94,8 @@ namespace fvm {
 	}
 
 	void EulerData::makePrimitive_() {
-		for (size_t i = 0; i < this->xSize(); ++i) {
-			for (size_t j = 0; j < this->ySize(); ++j) {
+		for (int i = 0; i < xSize(); ++i) {
+			for (int j = 0; j < ySize(); ++j) {
 				auto rho = data_[i][j][dIndex];
 				auto rhoVX = data_[i][j][moIndexX];
 				auto rhoVY = data_[i][j][moIndexY];
