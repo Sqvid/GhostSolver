@@ -9,16 +9,19 @@ double circleLS(double x, double y) {
 }
 
 TwoVector findNormal(std::function<double (double, double)> lsFunc,
-		double x, double y, double dx , double dy) {
+		double x, double y) {
 
 	TwoVector normal;
+	double dx {1e-6};
+	double dy = dx;
 
 	normal.x = (lsFunc(x + dx, y) - lsFunc(x - dx, y)) / (2 * dx);
 	normal.y = (lsFunc(x, y + dy) - lsFunc(x, y - dy)) / (2 * dy);
+	auto mag = normal.mag();
 
 	// Normalise vector.
-	normal.x /= normal.mag();
-	normal.x /= normal.mag();
+	normal.x /= mag;
+	normal.y /= mag;
 
 	return normal;
 }
