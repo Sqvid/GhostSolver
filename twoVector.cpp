@@ -20,8 +20,8 @@ double TwoVector::operator*(const TwoVector& v) {
 TwoVector TwoVector::operator*(const double& a) {
 	TwoVector result;
 
-	x = a * x;
-	y = a * y;
+	result.x = a * x;
+	result.y = a * y;
 
 	return result;
 }
@@ -39,8 +39,8 @@ TwoVector operator*(const double& a, const TwoVector& v) {
 TwoVector TwoVector::operator+(const TwoVector& v) {
 	TwoVector result;
 
-	x = x + v.x;
-	y = y + v.y;
+	result.x = x + v.x;
+	result.y = y + v.y;
 
 	return result;
 }
@@ -48,8 +48,8 @@ TwoVector TwoVector::operator+(const TwoVector& v) {
 TwoVector TwoVector::operator-(const TwoVector& v) {
 	TwoVector result;
 
-	x = x - v.x;
-	y = y - v.y;
+	result.x = x - v.x;
+	result.y = y - v.y;
 
 	return result;
 }
