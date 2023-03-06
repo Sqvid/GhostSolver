@@ -29,3 +29,28 @@ double cylExplPressure(double x, double y) {
 
 	return phi <= 0 ? 1 : 0.1;
 }
+
+double rigidTestDensity(double x, double y) {
+	y = 0;
+
+	return x + y <= 0.2 ? 1.3764 : 1;
+}
+
+double rigidTestVelocityX(double x, double y) {
+	y = 0;
+
+	return x + y <= 0.2 ? 0.394 : 0;
+}
+
+double rigidTestVelocityY(double x, double y) {
+	x = 0;
+	y = 0;
+
+	return x + y;
+}
+
+double rigidTestPressure(double x, double y) {
+	y = 0;
+
+	return x + y <= 0.2 ? 1.5698 : 1;
+}
