@@ -2,7 +2,6 @@
 #define GHOSTSOLVER_FVMSIMULATION_HPP
 
 #include <array>
-#include <cstddef>
 #include <functional>
 #include <list>
 #include <vector>
@@ -10,8 +9,6 @@
 #include "eulerData.hpp"
 #include "slopeLimiter.hpp"
 #include "twoVector.hpp"
-
-using std::size_t;
 
 namespace fvm {
 	// The spatial dimensions in which the simulation is carried out.
@@ -83,12 +80,13 @@ namespace fvm {
 			// Public member functions.
 			void step();
 			// TODO: Make private after testing.
-			std::list<std::array<int, 2>> getInterfaceList();
+			bool isInterfaceCell(int i, int j);
 			Cell blInterpolate(TwoVector v);
-			void populateGhostCells();
+			void populateInterfaceCells();
+			void populateGhostRegion();
 
 			// Operator overloads.
-			const CellVector& operator[](size_t i) { return eulerData_[i]; }
+			const CellVector& operator[](int i) { return eulerData_[i]; }
 			friend std::ofstream& operator<<(std::ofstream& output, Simulation& sim);
 
 		private:

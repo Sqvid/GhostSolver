@@ -1,14 +1,16 @@
-#include <array>
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
-#include <vector>
 
 #include "levelSet.hpp"
 #include "simulation.hpp"
 #include "slopeLimiter.hpp"
 #include "twoVector.hpp"
+
+using std::size_t;
 
 namespace fvm {
 	// Public member function definitions:
@@ -69,11 +71,11 @@ namespace fvm {
 		}
 
 		// Populate the solution space with the initial function.
-		for (size_t i = 0; i < eulerData_.xSize(); ++i) {
+		for (int i = 0; i < eulerData_.xSize(); ++i) {
 			// ith cell centre x-position.
 			double x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
 
-			for (size_t j = 0; j < eulerData_.ySize(); ++j) {
+			for (int j = 0; j < eulerData_.ySize(); ++j) {
 				// ith cell centre y-position.
 				double y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
 
@@ -90,6 +92,26 @@ namespace fvm {
 
 	// Evolve the simulation one timestep.
 	void Simulation::step() {
+		populateInterfaceCells();
+		populateGhostRegion();
+
+		// Visualise level-set zero-contour with ascii.
+		//std::cout << "\n\n";
+		//for (int i = 1; i < nTotal_ - 1; ++i) {
+		//	for (int j = 1; j < nTotal_ - 1; ++j) {
+		//		if (isInterfaceCell(i, j)) {
+		//			std::cout << "-";
+
+		//		} else {
+		//			std::cout << "@";
+		//		}
+
+		//		std::cout << " ";
+		//	}
+
+		//	std::cout << "\n";
+		//}
+
 		// All calculations must be done in conserved mode.
 		eulerData_.setMode(EulerDataMode::conserved);
 
@@ -416,8 +438,7 @@ namespace fvm {
 		double cSoundR = std::sqrt((gamma_ * pR) / rhoR);
 
 		double sPlus {}, sL {}, sR {}, sStar {};
-		Cell hllcL {}, hllcR {};
-		switch (ax) {
+		Cell hllcL {}, hllcR {}; switch (ax) {
 			case Axis::x:
 				// Find approximate left and right sound speeds.
 				sPlus = std::max(std::fabs(vxL) + cSoundL, std::fabs(vxR) + cSoundR);
@@ -503,49 +524,22 @@ namespace fvm {
 		return flux;
 	}
 
-	std::list<std::array<int, 2>> Simulation::getInterfaceList() {
-		// Map of positions inside and outside level-set function;
-		std::vector<std::vector<int>> lsMap;
+	 bool Simulation::isInterfaceCell(int i, int j) {
+		 if (i <= 0 || i >= nTotal_ - 1 || j <= 0 || j >= nTotal_ - 1) {
+			 throw std::out_of_range("isInterfaceCell: Cell or neighbours are out of bounds!");
+		 }
 
-		// Will track the positons that are inside (1) and outside (0) our
-		// level-set function.
-		lsMap.resize(nTotal_);
-		for (auto& col : lsMap) {
-			col.resize(nTotal_);
-		}
+		 auto lsFunc = circleLS;
 
-		// Find all cells on or inside the boundary.
-		for (int i = 0; i < nTotal_; ++i) {
-			auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+		 auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+		 auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
 
-			for (int j = 0; j < nTotal_; ++j) {
-				auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
-
-				lsMap[i][j] = (circleLS(x, y) >= 0);
-			}
-		}
-
-		// List of interface cells. Each entry is a pair of i, j values that
-		// correspond to an interface cell.
-		std::list<std::array<int, 2>> ifList;
-
-		// Find interface cells.
-		// This works by finding cells that have a different sign from one or
-		// more of their neighbours.
-		for (int i = 1; i < nTotal_ - 1; ++i) {
-			for (int j = 1; j < nTotal_ - 1; ++j) {
-				// Since lsMap was populated with 0's and 1's, we can use some
-				// boolean logic here.
-				if (lsMap[i][j] && !((lsMap[i][j + 1] && lsMap[i][j - 1])
-							&& (lsMap[i + 1][j] && lsMap[i - 1][j]))) {
-
-					ifList.push_back({i,j});
-				}
-			}
-		}
-
-		return ifList;
-	}
+		 // the cell at i,j is an interface cell if the level set function at
+		 // its cell-centre is >= 0 and at least one of its neighbours has a
+		 // level set < 0.
+		 return lsFunc(x, y) >= 0 && !(lsFunc(x - dx_, y) >= 0 && lsFunc(x + dx_, y) >= 0
+							&& lsFunc(x, y - dy_) >= 0 && lsFunc(x, y + dy_) >= 0);
+	 }
 
 	// Get cell values at point (x, y) via bilinear interpolation.
 	Cell Simulation::blInterpolate(TwoVector v) {
@@ -578,10 +572,9 @@ namespace fvm {
 		x1 = xStart_ + (i - nBoundary_ + 0.5) * dx_;
 		x2 = x1 + dx_;
 
-		if (yMesh % 2 == 0) {
-			j = (yMesh / 2) + nBoundary_ - 1;
+		if (yMesh % 2 == 0) { j = (yMesh / 2) + nBoundary_ - 1;
 
-		// xMesh is the location of a cell centre.
+		// yMesh is the location of a cell centre.
 		} else {
 			j = ((yMesh + 1) / 2) + nBoundary_ - 1;
 		}
@@ -603,5 +596,243 @@ namespace fvm {
 		Cell interpolated =((y2 - y) * lower + (y - y1) * upper) / (y2 - y1);
 
 		return interpolated;
+	}
+
+	void Simulation::populateInterfaceCells() {
+		eulerData_.setMode(EulerDataMode::primitive);
+
+		for (int i = 1; i < nTotal_ - 1; ++i) {
+			for (int j = 1; j < nTotal_ - 1; ++j) {
+				// If this is not an interface cell there is nothing to do.
+				if (!isInterfaceCell(i, j)) {
+					continue;
+				}
+
+				// Interface cell (x, y) position.
+				auto xI = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+				auto yI = yStart_ + (j - nBoundary_ + 0.5) * dy_;
+
+				// vI is an interface cell centre.
+				TwoVector vI(xI, yI);
+				// nI is the normal vector at point (xI, yI)
+				auto nI = findNormal(circleLS, xI, yI);
+
+				// vP is the closest point to vI that lies on the level set
+				// zero-contour.
+				// FIXME: make generic lsFunc!
+				auto vP = vI - circleLS(xI, yI)*nI;
+
+				// These are the two "adjacent" cells for the Riemann GFM.
+				// vP1 is position vector for the cell inside the ghost-region,
+				// while vP2 is for the cell in the real-region.
+				auto vP2 = vP - 1.5 * dx_ * nI;
+
+				// Get real state via bilinear interpolation.
+				auto realState = blInterpolate(vP2);
+
+				auto vRealX = realState[vIndexX];
+				auto vRealY = realState[vIndexY];
+				TwoVector v(vRealX, vRealY);
+
+				// Normal velocity.
+				double vNormalMag = v * nI;
+				auto vTangent = v - (vNormalMag * nI);
+				//auto vTangentMag = vTangent.mag();
+
+				auto rotRealState = realState;
+				rotRealState[vIndexX] = -vNormalMag;
+				//rotRealState[vIndexY] = vTangentMag;
+
+				// The ghost state is the same as the real state but with the normal
+				// velocity flipped.
+				auto rotGhostState = rotRealState;
+				rotGhostState[vIndexX] = vNormalMag;
+
+				double rhoL = rotGhostState[dIndex];
+				double vxL = rotGhostState[vIndexX];
+				//double vyL = rotGhostState[vIndexY];
+				double pL = rotGhostState[pIndex];
+
+				double rhoR = rotRealState[dIndex];
+				double vxR = rotRealState[vIndexX];
+				//double vyR = rotRealState[vIndexY];
+				double pR = rotRealState[pIndex];
+
+				// Sound speed estimates.
+				double cSoundL = std::sqrt((gamma_ * pL) / rhoL);
+				double cSoundR = std::sqrt((gamma_ * pR) / rhoR);
+
+				double sPlus {}, sL {}, sR {}, sStar {};
+				Cell hllcR {};
+				// Find approximate left and right sound speeds.
+				sPlus = std::max(std::fabs(vxL) + cSoundL, std::fabs(vxR) + cSoundR);
+				sL = -sPlus;
+				sR = sPlus;
+
+				// Approximate contact velocity in x.
+				sStar = (pR - pL + rhoL*vxL*(sL - vxL) - rhoR*vxR*(sR - vxR))
+					/ (rhoL*(sL - vxL) - rhoR*(sR - vxR));
+
+				hllcR = rhoR * ((sR - vxR) / (sR - sStar))
+					* Cell({1, sStar, 0,
+							rotRealState[eIndex]/rhoR + (sStar - vxR)*(sStar + pR/(rhoR * (sR - vxR)))});
+
+				Cell rotInterState = hllcR;
+
+				//if ( sL >= 0 ) {
+				//	rotInterState = rotGhostState;
+
+				//} else if (sStar >= 0) {
+				//	rotInterState = hllcL;
+
+				//} else if (sR >= 0) {
+				//	rotInterState = hllcR;
+
+				//} else {
+				//	rotInterState = rotRealState;
+				//}
+
+				Cell interState = rotInterState;
+				auto vInter = rotInterState[vIndexX]*nI + vTangent;
+				interState[vIndexX] = vInter.x;
+				interState[vIndexY] = vInter.y;
+
+				// Assign the intermediate state to the current interface cell.
+				eulerData_[i][j] = interState;
+			}
+		}
+	}
+
+	void Simulation::populateGhostRegion() {
+		double unknown = 1e100;
+		double huge = 2 * unknown;
+		auto lsFunc = circleLS;
+
+		// Initialise sweepGrid;
+		Grid sweepGrid(nTotal_);
+		for (auto& vec : sweepGrid) {
+			vec.resize(nTotal_, Cell({-huge, -huge, -huge, -huge}));
+		}
+
+		int sweepX = sweepGrid.size() - 1;
+		int sweepY = sweepGrid[0].size() - 1;
+
+		// Initialise values inside interface.
+		for (int i = 1; i < sweepX; ++i) {
+			auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+
+			for (int j = 1; j < sweepY; ++j) {
+				auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
+
+				if (isInterfaceCell(i, j)) {
+					sweepGrid[i][j] = eulerData_[i][j];
+
+				} else if (lsFunc(x, y) >= 0) {
+					sweepGrid[i][j] = Cell({huge, huge, huge, huge});
+				}
+			}
+		}
+
+		auto minNeighbour = [&](int i, int j, int q, Axis ax) {
+			double result;
+
+			switch (ax) {
+				case Axis::x:
+					result = std::min(sweepGrid[i - 1][j][q], sweepGrid[i + 1][j][q]);
+					break;
+
+				case Axis::y:
+					result = std::min(sweepGrid[i][j - 1][q], sweepGrid[i][j + 1][q]);
+					break;
+			}
+
+			return result;
+		};
+
+		auto doExtrapolation = [&](int i, int j, double x, double y) {
+			auto& cell = sweepGrid[i][j];
+
+			// Extrapolate every quantity via Eikonal equation.
+			for (size_t q = 0; q < cell.size(); ++q) {
+				auto quant = sweepGrid[i][j][q];
+
+				// Cell is available for an update.
+				if (lsFunc(x, y) > 0 && !isInterfaceCell(i, j)) {
+					auto qX = minNeighbour(i, j, q, Axis::x);
+					auto qY = minNeighbour(i, j, q, Axis::y);
+					auto n = findNormal(lsFunc, x, y);
+
+					// Helper variable.
+					auto beta = std::abs((n.y * dx_) / (n.x * dy_));
+
+					auto qGhost = (qX + beta*qY) / (1 + beta);
+
+					if (qGhost < quant) {
+						cell[q] = qGhost;
+					}
+				}
+			}
+		};
+
+		// Positive x-sweep.
+		for (int i = 1; i < sweepX; ++i) {
+			auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+
+			for (int j = 1; j < sweepY; ++j) {
+				auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
+
+				// Extrapolate every quantity via Eikonal equation.
+				doExtrapolation(i, j, x, y);
+			}
+		}
+
+		// Positive y-sweep.
+		for (int j = 1; j < sweepY; ++j) {
+			auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
+
+			for (int i = 1; i < sweepX; ++i) {
+				auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+
+				// Extrapolate every quantity via Eikonal equation.
+				doExtrapolation(i, j, x, y);
+			}
+		}
+
+		// Negative x-sweep.
+		for (int i = sweepGrid.size() - 1; i > 0; --i) {
+			auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+
+			for (int j = sweepGrid[0].size() - 1; j > 0; --j) {
+				auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
+
+				// Extrapolate every quantity via Eikonal equation.
+				doExtrapolation(i, j, x, y);
+			}
+		}
+
+		// Negative y-sweep.
+		for (int j = sweepGrid[0].size() - 1; j > 0; --j) {
+			auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
+
+			for (int i = sweepGrid.size() - 1; i > 0; --i) {
+				auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+
+				// Extrapolate every quantity via Eikonal equation.
+				doExtrapolation(i, j, x, y);
+			}
+		}
+
+		// Copy values over to real mesh.
+		for (int i = 1; i < nTotal_ - 1; ++i) {
+			auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+
+			for (int j = 1; j < nTotal_ - 1; ++j) {
+				auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
+
+				if (lsFunc(x, y) >= 0 && !isInterfaceCell(i, j)) {
+					eulerData_[i][j] = sweepGrid[i][j];
+				}
+			}
+		}
 	}
 }
