@@ -2,6 +2,24 @@
 
 #include "levelSet.hpp"
 
+TwoVector findNormal(std::function<double (double, double, double)> levelSet,
+		double x, double y, double t) {
+
+	TwoVector normal;
+	double dx {1e-6};
+	double dy = dx;
+
+	normal.x = (levelSet(x + dx, y, t) - levelSet(x - dx, y, t)) / (2 * dx);
+	normal.y = (levelSet(x, y + dy, t) - levelSet(x, y - dy, t)) / (2 * dy);
+	auto mag = normal.mag();
+
+	// Normalise vector.
+	normal.x /= mag;
+	normal.y /= mag;
+
+	return normal;
+}
+
 double circleLS(double x, double y, double t) {
 	auto x0 {0.6}, y0 {0.5}, r {0.2}, vX {0.0};
 
@@ -35,20 +53,45 @@ double separateCirclesLS(double x, double y, double t) {
 	return phi1 > phi2 ? phi1 : phi2;
 }
 
-TwoVector findNormal(std::function<double (double, double, double)> levelSet,
-		double x, double y, double t) {
+double overlapCirclesLS(double x, double y, double t) {
+	auto x0 {0.6}, y1 {0.35}, y2 {0.65}, r {0.2};
 
-	TwoVector normal;
-	double dx {1e-6};
-	double dy = dx;
+	auto dX {0*t};
 
-	normal.x = (levelSet(x + dx, y, t) - levelSet(x - dx, y, t)) / (2 * dx);
-	normal.y = (levelSet(x, y + dy, t) - levelSet(x, y - dy, t)) / (2 * dy);
-	auto mag = normal.mag();
+	// Centre displacement.
 
-	// Normalise vector.
-	normal.x /= mag;
-	normal.y /= mag;
+	auto phi1 =  r - std::sqrt((x - x0 - dX)*(x - x0 - dX) + (y - y1)*(y - y1));
+	auto phi2 =  r - std::sqrt((x - x0 - dX)*(x - x0 - dX) + (y - y2)*(y - y2));
 
-	return normal;
+	// Outside both circles.
+	if (phi1 < 0 && phi2 < 0) {
+		return phi1;
+
+	// Inside circle 1.
+	} else if (phi1 >= 0 && phi2 < 0) {
+		return phi1;
+
+	// Inside circle 2.
+	} else if (phi1 < 0 && phi2 >= 0) {
+		return phi2;
+	}
+
+	// Inside the intersection of both circles. Return closest intersection
+	// point.
+	auto yDiff = y2 - y1;
+	auto halfChord = std::sqrt(r*r - yDiff * yDiff * 0.5 * 0.5);
+
+	// (xI, yI) is the coordinate of the nearest intersection.
+	auto xI {0.0};
+	auto yI = y1 + 0.5*yDiff;
+	double distToInterface;
+
+	if (x < x0) {
+		xI = x0 - halfChord;
+
+	} else {
+		xI = x0 + halfChord;
+	}
+
+	return distToInterface = std::sqrt((x - xI)*(x - xI) + (y - yI)*(y - yI));
 }

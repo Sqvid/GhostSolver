@@ -5,10 +5,11 @@
 
 #include "twoVector.hpp"
 
-double circleLS(double x, double y, double t);
-double separateCirclesLS(double x, double y, double t);
-
 TwoVector findNormal(std::function<double (double, double, double)> levelSet,
 		double x, double y, double t);
+
+double circleLS(double x, double y, double t);
+double separateCirclesLS(double x, double y, double t);
+double overlapCirclesLS(double x, double y, double t);
 
 #endif
