@@ -10,7 +10,7 @@ struct TwoVector {
 
 	// Public member functions.
 	// Constructor.
-	TwoVector(double xVal = 0, double yVal = 0);
+	explicit TwoVector(double xVal = 0, double yVal = 0);
 
 	double mag();
 

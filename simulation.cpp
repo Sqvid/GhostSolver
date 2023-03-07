@@ -330,7 +330,7 @@ namespace fvm {
 	void Simulation::linearReconst_(Axis ax) {
 		// Alias the numerical data.
 		eulerData_.setMode(EulerDataMode::conserved);
-		Grid& u = eulerData_.data();
+		const Grid& u = eulerData_.data();
 
 		// Calculate reconstructed interface values.
 		for (int i = nBoundary_ - 1; i < nCells_ + nBoundary_ + 1; ++i) {
@@ -744,8 +744,8 @@ namespace fvm {
 			vec.resize(nTotal_, Cell({-huge, -huge, -huge, -huge}));
 		}
 
-		int sweepX = nTotal_ - 1;
-		int sweepY = nTotal_ - 1;
+		const int sweepX = nTotal_ - 1;
+		const int sweepY = nTotal_ - 1;
 
 		// Initialise values inside interface.
 		for (int i = 1; i < sweepX; ++i) {
