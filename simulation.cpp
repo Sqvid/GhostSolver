@@ -93,8 +93,8 @@ namespace fvm {
 
 	// Evolve the simulation one timestep.
 	void Simulation::step() {
-		populateInterfaceCells();
-		populateGhostRegion();
+		populateInterfaceCells_();
+		populateGhostRegion_();
 
 		// Visualise level-set zero-contour with ascii.
 		//std::cout << "\n\n";
@@ -554,7 +554,7 @@ namespace fvm {
 		return flux;
 	}
 
-	 bool Simulation::isInterfaceCell(int i, int j) {
+	 bool Simulation::isInterfaceCell_(int i, int j) {
 		 if (i <= 0 || i >= nTotal_ - 1 || j <= 0 || j >= nTotal_ - 1) {
 			 throw std::out_of_range("isInterfaceCell: Cell or neighbours are out of bounds!");
 		 }
@@ -572,7 +572,7 @@ namespace fvm {
 	 }
 
 	// Get cell values at point (x, y) via bilinear interpolation.
-	Cell Simulation::blInterpolate(TwoVector v) {
+	Cell Simulation::blInterpolate_(TwoVector v) {
 		auto x = v.x;
 		auto y = v.y;
 
@@ -628,13 +628,13 @@ namespace fvm {
 		return interpolated;
 	}
 
-	void Simulation::populateInterfaceCells() {
+	void Simulation::populateInterfaceCells_() {
 		eulerData_.setMode(EulerDataMode::primitive);
 
 		for (int i = 1; i < nTotal_ - 1; ++i) {
 			for (int j = 1; j < nTotal_ - 1; ++j) {
 				// If this is not an interface cell there is nothing to do.
-				if (!isInterfaceCell(i, j)) {
+				if (!isInterfaceCell_(i, j)) {
 					continue;
 				}
 
@@ -658,7 +658,7 @@ namespace fvm {
 				auto vP2 = vP - 1.5 * dx_ * nI;
 
 				// Get real state via bilinear interpolation.
-				auto realState = blInterpolate(vP2);
+				auto realState = blInterpolate_(vP2);
 
 				auto vRealX = realState[vIndexX];
 				auto vRealY = realState[vIndexY];
@@ -733,7 +733,7 @@ namespace fvm {
 		}
 	}
 
-	void Simulation::populateGhostRegion() {
+	void Simulation::populateGhostRegion_() {
 		double unknown = 1e100;
 		double huge = 2 * unknown;
 		auto lsFunc = circleLS;
@@ -754,7 +754,7 @@ namespace fvm {
 			for (int j = 1; j < sweepY; ++j) {
 				auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
 
-				if (isInterfaceCell(i, j)) {
+				if (isInterfaceCell_(i, j)) {
 					sweepGrid[i][j] = eulerData_[i][j];
 
 				} else if (lsFunc(x, y) >= 0) {
@@ -763,33 +763,19 @@ namespace fvm {
 			}
 		}
 
-		auto minNeighbour = [&](int i, int j, int q, Axis ax) {
-			double result;
-
-			switch (ax) {
-				case Axis::x:
-					result = std::min(sweepGrid[i - 1][j][q], sweepGrid[i + 1][j][q]);
-					break;
-
-				case Axis::y:
-					result = std::min(sweepGrid[i][j - 1][q], sweepGrid[i][j + 1][q]);
-					break;
-			}
-
-			return result;
-		};
-
+		// Lambda that does constant extrapolation.
 		auto doExtrapolation = [&](int i, int j, double x, double y) {
 			auto& cell = sweepGrid[i][j];
 
 			// Extrapolate every quantity via Eikonal equation.
 			for (size_t q = 0; q < cell.size(); ++q) {
+
 				auto quant = sweepGrid[i][j][q];
 
 				// Cell is available for an update.
-				if (lsFunc(x, y) > 0 && !isInterfaceCell(i, j)) {
-					auto qX = minNeighbour(i, j, q, Axis::x);
-					auto qY = minNeighbour(i, j, q, Axis::y);
+				if (lsFunc(x, y) > 0 && !isInterfaceCell_(i, j)) {
+					auto qX = std::min(sweepGrid[i - 1][j][q], sweepGrid[i + 1][j][q]);
+					auto qY = std::min(sweepGrid[i][j - 1][q], sweepGrid[i][j + 1][q]);
 					auto n = findNormal(lsFunc, x, y);
 
 					// Helper variable.
@@ -852,14 +838,14 @@ namespace fvm {
 			}
 		}
 
-		// Copy values over to real mesh.
+		// Copy values over to the real mesh.
 		for (int i = 1; i < nTotal_ - 1; ++i) {
 			auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
 
 			for (int j = 1; j < nTotal_ - 1; ++j) {
 				auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
 
-				if (lsFunc(x, y) >= 0 && !isInterfaceCell(i, j)) {
+				if (lsFunc(x, y) > 0 && !isInterfaceCell_(i, j)) {
 					eulerData_[i][j] = sweepGrid[i][j];
 				}
 			}

@@ -79,11 +79,6 @@ namespace fvm {
 
 			// Public member functions.
 			void step();
-			// TODO: Make private after testing.
-			bool isInterfaceCell(int i, int j);
-			Cell blInterpolate(TwoVector v);
-			void populateInterfaceCells();
-			void populateGhostRegion();
 
 			// Operator overloads.
 			const CellVector& operator[](int i) { return eulerData_[i]; }
@@ -116,14 +111,25 @@ namespace fvm {
 
 			// Private member functions
 			double calcTimeStep_();
-			void calcFluxGrid_(Axis ax);
+
+			// Data reconstruction for slope-limiting.
 			void linearReconst_(Axis ax);
+
+			// Flux functions.
 			Cell fluxExpr_(Cell u, Axis ax);
+			void calcFluxGrid_(Axis ax);
 			Cell calcFlux_(const Cell& uLeft, const Cell& uRight, Axis ax);
 			Cell lfFlux_(const Cell& uLeft, const Cell& uRight, Axis ax);
 			Cell richtmyerFlux_(const Cell& uLeft, const Cell& uRight, Axis ax);
 			Cell forceFlux_(const Cell& uLeft, const Cell& uRight, Axis ax);
 			Cell hllcFlux_(const Cell& uLeft, const Cell& uRight, Axis ax);
+
+			// Ghost-fluid method helpers.
+			bool isInterfaceCell_(int i, int j);
+			Cell blInterpolate_(TwoVector v);
+			void populateInterfaceCells_();
+			void populateGhostRegion_();
+
 			// Wrapper around EulerData mode conversion function.
 			void setMode(EulerDataMode want) { eulerData_.setMode(want); }
 	};
