@@ -175,12 +175,24 @@ namespace fvm {
 				// Values of primitive quantities.
 				Cell cell = sim[i][j];
 
+				// Mock-schlieren variable calculation.
+				// X-derivitive of density.
+				auto dRhoX = (sim[i + 1][j][dIndex] - sim[i - 1][j][dIndex]) / (2 * sim.dx_);
+				// Y-derivitive of density.
+				auto dRhoY = (sim[i][j + 1][dIndex] - sim[i][j - 1][dIndex]) / (2 * sim.dy_);
+				TwoVector gradRho(dRhoX, dRhoY);
+
+				// The mock-schlieren variable.
+				auto schlieren = std::exp((-20 * gradRho.mag()) / (1000 * cell[dIndex]));
+
+
 				output << x << " "
 					<< y << " "
 					<< cell[dIndex] << " "
 					<< cell[vIndexX] << " "
 					<< cell[vIndexY] << " "
-					<< cell[pIndex] << "\n";
+					<< cell[pIndex] << " "
+					<< schlieren << "\n";
 			}
 
 			output << "\n";
@@ -714,8 +726,8 @@ namespace fvm {
 			vec.resize(nTotal_, Cell({-huge, -huge, -huge, -huge}));
 		}
 
-		int sweepX = sweepGrid.size() - 1;
-		int sweepY = sweepGrid[0].size() - 1;
+		int sweepX = nTotal_ - 1;
+		int sweepY = nTotal_ - 1;
 
 		// Initialise values inside interface.
 		for (int i = 1; i < sweepX; ++i) {
