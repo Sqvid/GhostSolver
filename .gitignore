@@ -2,6 +2,7 @@
 *.o
 *.dat
 *.gif
+*.png
 *.pdf
 compile_commands.json
 *.md
