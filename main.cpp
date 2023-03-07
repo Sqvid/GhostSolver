@@ -24,7 +24,7 @@ int main(void) {
 	try {
 		fvm::Simulation test1(100, -1, 1, 0, 0.4, 0.9, 1.4,
 				&rigidTestDensity, &rigidTestVelocityX, &rigidTestVelocityY,
-				&rigidTestPressure, &circleLS,
+				&rigidTestPressure, &separateCirclesLS,
 				fvm::FluxScheme::hllc, fvm::SlopeLimiter::vanLeer);
 
 		std::ofstream output1("test1.dat");
