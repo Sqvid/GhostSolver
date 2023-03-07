@@ -27,7 +27,7 @@ clean:
 	$(RM) *.o
 	$(RM) $(BIN)
 	$(RM) *.dat
-	$(RM) *.gif
+	$(RM) *.gif *.png
 	$(RM) -r $(DOCDIRS)
 
 tidy:
