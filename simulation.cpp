@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
 #include "levelSet.hpp"
 #include "simulation.hpp"
@@ -166,6 +167,29 @@ namespace fvm {
 		// Output data in primitive form.
 		sim.eulerData_.setMode(EulerDataMode::primitive);
 
+		// Get the max density. This is used to scale the schlieren plot.
+		double maxGradRho = 0;
+		std::vector<std::vector<double>> rhoGradients(sim.nTotal_, std::vector<double>(sim.nTotal_));
+
+		for (int i = sim.nBoundary_; i < sim.nCells_ + sim.nBoundary_; ++i) {
+			for (int j = sim.nBoundary_; j < sim.nCells_ + sim.nBoundary_; ++j) {
+				// Values of primitive quantities.
+				// Mock-schlieren variable calculation.
+				// X-derivitive of density.
+				auto dRhoX = (sim[i + 1][j][dIndex] - sim[i - 1][j][dIndex]) / (2 * sim.dx_);
+				// Y-derivitive of density.
+				auto dRhoY = (sim[i][j + 1][dIndex] - sim[i][j - 1][dIndex]) / (2 * sim.dy_);
+				TwoVector gradRho(dRhoX, dRhoY);
+				auto gradMag = gradRho.mag();
+
+				if (gradMag > maxGradRho) {
+					maxGradRho = gradMag;
+				}
+
+				rhoGradients[i][j] = gradMag;
+			}
+		}
+
 		for (int i = sim.nBoundary_; i < sim.nCells_ + sim.nBoundary_; ++i) {
 			double x = sim.xStart_ + (i - sim.nBoundary_) * sim.dx_;
 
@@ -175,16 +199,10 @@ namespace fvm {
 				// Values of primitive quantities.
 				Cell cell = sim[i][j];
 
-				// Mock-schlieren variable calculation.
-				// X-derivitive of density.
-				auto dRhoX = (sim[i + 1][j][dIndex] - sim[i - 1][j][dIndex]) / (2 * sim.dx_);
-				// Y-derivitive of density.
-				auto dRhoY = (sim[i][j + 1][dIndex] - sim[i][j - 1][dIndex]) / (2 * sim.dy_);
-				TwoVector gradRho(dRhoX, dRhoY);
-
 				// The mock-schlieren variable.
-				auto schlieren = std::exp((-20 * gradRho.mag()) / (1000 * cell[dIndex]));
-
+				double k = 15;
+				double b = 0.8;
+				auto schlieren = b * std::exp((-k * rhoGradients[i][j]) / maxGradRho);
 
 				output << x << " "
 					<< y << " "
