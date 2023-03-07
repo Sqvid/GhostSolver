@@ -5,7 +5,8 @@
 
 #include "twoVector.hpp"
 
-double circleLS(double x, double y);
-TwoVector findNormal(std::function<double (double, double)> lsFunc, double x, double y);
+double circleLS(double x, double y, double t);
+TwoVector findNormal(std::function<double (double, double, double)> levelSet,
+		double x, double y, double t);
 
 #endif

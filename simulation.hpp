@@ -49,6 +49,7 @@ namespace fvm {
 					std::function<double (double, double)> velocityDistX,
 					std::function<double (double, double)> velocityDistY,
 					std::function<double (double, double)> pressureDist,
+					std::function<double (double, double, double)> levelSet,
 					FluxScheme fluxScheme,
 					SlopeLimiter slType = SlopeLimiter::none);
 
@@ -108,6 +109,7 @@ namespace fvm {
 			// Left and right reconstructed interface values.
 			Grid lSlopeIfaces_;
 			Grid rSlopeIfaces_;
+			std::function<double (double, double, double)> levelSet_;
 
 			// Private member functions
 			double calcTimeStep_();

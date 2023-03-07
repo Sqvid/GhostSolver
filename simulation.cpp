@@ -23,6 +23,7 @@ namespace fvm {
 			std::function<double (double, double)> velocityDistX,
 			std::function<double (double, double)> velocityDistY,
 			std::function<double (double, double)> pressureDist,
+			std::function<double (double, double, double)> levelSet,
 			FluxScheme fluxScheme,
 			SlopeLimiter slType)
 			// Initialiser list
@@ -56,6 +57,7 @@ namespace fvm {
 		gamma_ = gamma;
 		fluxScheme_ = fluxScheme;
 		slType_ = slType;
+		levelSet_ = levelSet;
 
 		// Resize grids in x.
 		eulerData_.data().resize(nTotal_);
@@ -559,16 +561,15 @@ namespace fvm {
 			 throw std::out_of_range("isInterfaceCell: Cell or neighbours are out of bounds!");
 		 }
 
-		 auto lsFunc = circleLS;
-
 		 auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
 		 auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
 
 		 // the cell at i,j is an interface cell if the level set function at
 		 // its cell-centre is >= 0 and at least one of its neighbours has a
 		 // level set < 0.
-		 return lsFunc(x, y) >= 0 && !(lsFunc(x - dx_, y) >= 0 && lsFunc(x + dx_, y) >= 0
-							&& lsFunc(x, y - dy_) >= 0 && lsFunc(x, y + dy_) >= 0);
+		 return levelSet_(x, y, tNow_) >= 0 && !(levelSet_(x - dx_, y, tNow_) >= 0
+				 && levelSet_(x + dx_, y, tNow_) >= 0 && levelSet_(x, y - dy_, tNow_) >= 0
+				 && levelSet_(x, y + dy_, tNow_) >= 0);
 	 }
 
 	// Get cell values at point (x, y) via bilinear interpolation.
@@ -645,12 +646,11 @@ namespace fvm {
 				// vI is an interface cell centre.
 				TwoVector vI(xI, yI);
 				// nI is the normal vector at point (xI, yI)
-				auto nI = findNormal(circleLS, xI, yI);
+				auto nI = findNormal(levelSet_, xI, yI, tNow_);
 
 				// vP is the closest point to vI that lies on the level set
 				// zero-contour.
-				// FIXME: make generic lsFunc!
-				auto vP = vI - circleLS(xI, yI)*nI;
+				auto vP = vI - levelSet_(xI, yI, tNow_)*nI;
 
 				// These are the two "adjacent" cells for the Riemann GFM.
 				// vP1 is position vector for the cell inside the ghost-region,
@@ -736,7 +736,6 @@ namespace fvm {
 	void Simulation::populateGhostRegion_() {
 		double unknown = 1e100;
 		double huge = 2 * unknown;
-		auto lsFunc = circleLS;
 
 		// Initialise sweepGrid;
 		Grid sweepGrid(nTotal_);
@@ -757,7 +756,7 @@ namespace fvm {
 				if (isInterfaceCell_(i, j)) {
 					sweepGrid[i][j] = eulerData_[i][j];
 
-				} else if (lsFunc(x, y) >= 0) {
+				} else if (levelSet_(x, y, tNow_) >= 0) {
 					sweepGrid[i][j] = Cell({huge, huge, huge, huge});
 				}
 			}
@@ -773,10 +772,10 @@ namespace fvm {
 				auto quant = sweepGrid[i][j][q];
 
 				// Cell is available for an update.
-				if (lsFunc(x, y) > 0 && !isInterfaceCell_(i, j)) {
+				if (levelSet_(x, y, tNow_) > 0 && !isInterfaceCell_(i, j)) {
 					auto qX = std::min(sweepGrid[i - 1][j][q], sweepGrid[i + 1][j][q]);
 					auto qY = std::min(sweepGrid[i][j - 1][q], sweepGrid[i][j + 1][q]);
-					auto n = findNormal(lsFunc, x, y);
+					auto n = findNormal(levelSet_, x, y, tNow_);
 
 					// Helper variable.
 					auto beta = std::abs((n.y * dx_) / (n.x * dy_));
@@ -845,7 +844,7 @@ namespace fvm {
 			for (int j = 1; j < nTotal_ - 1; ++j) {
 				auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
 
-				if (lsFunc(x, y) > 0 && !isInterfaceCell_(i, j)) {
+				if (levelSet_(x, y, tNow_) > 0 && !isInterfaceCell_(i, j)) {
 					eulerData_[i][j] = sweepGrid[i][j];
 				}
 			}

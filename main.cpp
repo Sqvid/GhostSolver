@@ -6,6 +6,7 @@
 #include "simulation.hpp"
 #include "slopeLimiter.hpp"
 #include "toro2DTests.hpp"
+#include "levelSet.hpp"
 
 void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
 	output << sim << "\n\n";
@@ -22,7 +23,8 @@ void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
 int main(void) {
 	try {
 		fvm::Simulation test1(100, -1, 1, 0, 0.4, 0.9, 1.4,
-				&rigidTestDensity, &rigidTestVelocityX, &rigidTestVelocityY, &rigidTestPressure,
+				&rigidTestDensity, &rigidTestVelocityX, &rigidTestVelocityY,
+				&rigidTestPressure, &circleLS,
 				fvm::FluxScheme::hllc, fvm::SlopeLimiter::vanLeer);
 
 		std::ofstream output1("test1.dat");
