@@ -98,23 +98,6 @@ namespace fvm {
 		populateInterfaceCells_();
 		populateGhostRegion_();
 
-		// Visualise level-set zero-contour with ascii.
-		//std::cout << "\n\n";
-		//for (int i = 1; i < nTotal_ - 1; ++i) {
-		//	for (int j = 1; j < nTotal_ - 1; ++j) {
-		//		if (isInterfaceCell_(i, j)) {
-		//			std::cout << "-";
-
-		//		} else {
-		//			std::cout << "@";
-		//		}
-
-		//		std::cout << " ";
-		//	}
-
-		//	std::cout << "\n";
-		//}
-
 		// All calculations must be done in conserved mode.
 		eulerData_.setMode(EulerDataMode::conserved);
 
@@ -708,19 +691,6 @@ namespace fvm {
 							rotRealState[eIndex]/rhoR + (sStar - vxR)*(sStar + pR/(rhoR * (sR - vxR)))});
 
 				Cell rotInterState = hllcR;
-
-				//if ( sL >= 0 ) {
-				//	rotInterState = rotGhostState;
-
-				//} else if (sStar >= 0) {
-				//	rotInterState = hllcL;
-
-				//} else if (sR >= 0) {
-				//	rotInterState = hllcR;
-
-				//} else {
-				//	rotInterState = rotRealState;
-				//}
 
 				Cell interState = rotInterState;
 				auto vInter = rotInterState[vIndexX]*nI + vTangent;
