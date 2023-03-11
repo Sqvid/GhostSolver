@@ -22,9 +22,9 @@ void runSimulation(fvm::Simulation& sim, std::ofstream& output) {
 
 int main(void) {
 	try {
-		fvm::Simulation test1(200, -1, 1, 0, 0.4, 0.9, 1.4,
+		fvm::Simulation test1(350, -1, 1, 0, 0.6, 0.9, 1.4,
 				&rigidTestDensity, &rigidTestVelocityX, &rigidTestVelocityY,
-				&rigidTestPressure, &overlapCirclesLS,
+				&rigidTestPressure, &separateCirclesLS,
 				fvm::FluxScheme::hllc, fvm::SlopeLimiter::vanLeer);
 
 		std::ofstream output1("test1.dat");

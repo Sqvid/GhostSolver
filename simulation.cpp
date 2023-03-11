@@ -789,7 +789,7 @@ namespace fvm {
 			}
 		};
 
-		// Positive x-sweep.
+		// +x, +y sweep.
 		for (int i = 1; i < sweepX; ++i) {
 			auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
 
@@ -801,23 +801,11 @@ namespace fvm {
 			}
 		}
 
-		// Positive y-sweep.
-		for (int j = 1; j < sweepY; ++j) {
-			auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
-
-			for (int i = 1; i < sweepX; ++i) {
-				auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
-
-				// Extrapolate every quantity via Eikonal equation.
-				doExtrapolation(i, j, x, y);
-			}
-		}
-
-		// Negative x-sweep.
-		for (int i = sweepGrid.size() - 1; i > 0; --i) {
+		// -x, +y sweep.
+		for (int i = sweepX - 1; i > 0; --i) {
 			auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
 
-			for (int j = sweepGrid[0].size() - 1; j > 0; --j) {
+			for (int j = 1; j < sweepY; ++j) {
 				auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
 
 				// Extrapolate every quantity via Eikonal equation.
@@ -825,12 +813,24 @@ namespace fvm {
 			}
 		}
 
-		// Negative y-sweep.
-		for (int j = sweepGrid[0].size() - 1; j > 0; --j) {
-			auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
+		// -x, -y sweep.
+		for (int i = sweepX - 1; i > 0; --i) {
+			auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
 
-			for (int i = sweepGrid.size() - 1; i > 0; --i) {
-				auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+			for (int j = sweepY - 1; j > 0; --j) {
+				auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
+
+				// Extrapolate every quantity via Eikonal equation.
+				doExtrapolation(i, j, x, y);
+			}
+		}
+
+		// +x, -y sweep.
+		for (int i = 1; i < sweepX; ++i) {
+			auto x = xStart_ + (i - nBoundary_ + 0.5) * dx_;
+
+			for (int j = sweepY; j > 0; --j) {
+				auto y = yStart_ + (j - nBoundary_ + 0.5) * dy_;
 
 				// Extrapolate every quantity via Eikonal equation.
 				doExtrapolation(i, j, x, y);
