@@ -20,6 +20,11 @@ TwoVector findNormal(std::function<double (double, double, double)> levelSet,
 	return normal;
 }
 
+// Helper function to calculate distance between (x1, y1) and (x2, y2).
+double distBetween(double x1, double y1, double x2, double y2) {
+	return std::sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
+}
+
 double circleLS(double x, double y, double t) {
 	auto x0 {0.6}, y0 {0.5}, r {0.2}, vX {0.0};
 
@@ -94,4 +99,75 @@ double overlapCirclesLS(double x, double y, double t) {
 	}
 
 	return distToInterface = std::sqrt((x - xI)*(x - xI) + (y - yI)*(y - yI));
+}
+
+double squareLS(double x, double y, double t) {
+	// (xC, yC) is the centre of the square. hSide is half the side length.
+	auto xC {0.6}, yC {0.5}, hSide {0.2};
+
+	// Bounds of the square. L, R, U, D = left, right, up, down.
+	auto xL = xC - hSide;
+	auto xR = xC + hSide;
+	auto yU = yC + hSide;
+	auto yD = yC - hSide;
+
+	// Inside the square.
+	if (x >= xL && x <= xR && y >= yD && y <= yU) {
+		auto lDist = x - xL;
+		auto rDist = xR - x;
+		// The closest x-bound.
+		auto xDist = lDist <= rDist ? lDist : rDist;
+
+		auto uDist = yU - y;
+		auto dDist = y - yD;
+		// The closest y-bound.
+		auto yDist = uDist <= dDist ? uDist : dDist;
+
+		// The closest side.
+		return xDist <= yDist ? xDist : yDist;
+	}
+
+
+	// Outside the square. By convention the return value here is negative.
+	// On the left.
+	if (x < xL) {
+		// Top-left corner.
+		if (y > yU) {
+			return -distBetween(x, y, xL, yU);
+
+		// Bottom-left corner.
+		} else if (y < yD) {
+			return -distBetween(x, y, xL, yD);
+
+		// Directly left of the square.
+		} else {
+			return x - xL;
+		}
+
+	// On the right.
+	} else if (x > xR) {
+		// Top-right corner.
+		if (y > yU) {
+			return -distBetween(x, y, xR, yU);
+
+		// Bottom-right corner.
+		} else if (y < yD) {
+			return -distBetween(x, y, xR, yD);
+
+		// Directly right of the square.
+		} else {
+			return xR - x;
+		}
+
+	// Directly above or below the square.
+	} else {
+		// Above.
+		if (y > yU) {
+			return yU - y;
+
+		// Below
+		} else {
+			return y - yD;
+		}
+	}
 }
