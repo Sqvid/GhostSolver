@@ -23,9 +23,9 @@ namespace fvm {
 			std::function<double (double, double)> velocityDistX,
 			std::function<double (double, double)> velocityDistY,
 			std::function<double (double, double)> pressureDist,
-			std::function<double (double, double, double)> levelSet,
 			FluxScheme fluxScheme,
-			SlopeLimiter slType)
+			SlopeLimiter slType,
+			std::function<double (double, double, double)> levelSet)
 			// Initialiser list
 			: eulerData_(gamma) {
 
@@ -95,8 +95,10 @@ namespace fvm {
 
 	// Evolve the simulation one timestep.
 	void Simulation::step() {
-		populateInterfaceCells_();
-		populateGhostRegion_();
+		if (levelSet_ != nullptr) {
+			populateInterfaceCells_();
+			populateGhostRegion_();
+		}
 
 		// All calculations must be done in conserved mode.
 		eulerData_.setMode(EulerDataMode::conserved);

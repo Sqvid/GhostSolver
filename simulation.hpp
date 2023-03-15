@@ -49,9 +49,9 @@ namespace fvm {
 					std::function<double (double, double)> velocityDistX,
 					std::function<double (double, double)> velocityDistY,
 					std::function<double (double, double)> pressureDist,
-					std::function<double (double, double, double)> levelSet,
 					FluxScheme fluxScheme,
-					SlopeLimiter slType = SlopeLimiter::none);
+					SlopeLimiter slType = SlopeLimiter::none,
+					std::function<double (double, double, double)> levelSet = nullptr);
 
 			// Accessors
 			// Getters
