@@ -1,32 +1,73 @@
 #!/bin/env gnuplot
-reset session
 
-numFiles = 1
+# Sod's test in X
+stats "test1X.dat" nooutput
+last = STATS_blocks - 1
 
-file(ft, n) = sprintf("test%d.%s", n, ft)
+set term png size 800,800
+set output "test1XDensity.png"
+splot "test1X.dat" i last u 1:2:3 w l
 
-do for [i=1:numFiles] {
-	set term gif size 800,800 animate delay 10
-	set output file("gif", i)
+set output "test1XVelocityX.png"
+splot "test1X.dat" i last u 1:2:4 w l
 
-	stats file("dat", i) u 1 nooutput
-	nBlocks = STATS_blocks
+set output "test1XVelocityY.png"
+splot "test1X.dat" i last u 1:2:5 w l
 
-	do for [j=1:nBlocks] {
-		set multiplot layout 2,2
+set output "test1XPressure.png"
+splot "test1X.dat" i last u 1:2:6 w l
 
-		set title sprintf("Dataset %d: density", i)
-		splot file("dat", i) index j-1 u 1:2:3 w l lt rgb "blue"
+# Sod's test in Y
+stats "test1Y.dat" nooutput
+last = STATS_blocks - 1
 
-		set title sprintf("Dataset %d: x-velocity", i)
-		splot "" index j-1 u 1:2:4 w l lt rgb "red"
+set output "test1YDensity.png"
+splot "test1Y.dat" i last u 1:2:3 w l
 
-		set title sprintf("Dataset %d: y-velocity", i)
-		splot "" index j-1 u 1:2:5 w l lt rgb "green"
+set output "test1YVelocityX.png"
+splot "test1Y.dat" i last u 1:2:4 w l
 
-		set title sprintf("Dataset %d: pressure", i)
-		splot "" index j-1 u 1:2:6 w l lt rgb "violet"
+set output "test1YVelocityY.png"
+splot "test1Y.dat" i last u 1:2:5 w l
 
-		unset multiplot
-	}
-}
+set output "test1YPressure.png"
+splot "test1Y.dat" i last u 1:2:6 w l
+
+# Cylindrical explosion test
+stats "cylExpl.dat" nooutput
+last = STATS_blocks - 1
+
+set output "cylExplDensity.png"
+splot "cylExpl.dat" i last u 1:2:3 w l
+
+set output "cylExplVelX.png"
+splot "cylExpl.dat" i last u 1:2:4 w l
+
+set output "cylExplVelY.png"
+splot "cylExpl.dat" i last u 1:2:5 w l
+
+set output "cylExplPressure.png"
+splot "cylExpl.dat" i last u 1:2:6 w l
+
+# Rigid tests
+stats "single.dat" nooutput
+last = STATS_blocks - 1
+
+set output "single.png"
+splot "single.dat" i last u 1:2:3 w l
+
+stats "separate.dat" nooutput
+last = STATS_blocks - 1
+
+set output "separate.png"
+splot "separate.dat" i last u 1:2:3 w l
+set output "sepSchlieren.png"
+set view map
+set palette gray
+splot "separate.dat" i last u 1:2:7 w pm3d
+
+stats "overlap.dat" nooutput
+last = STATS_blocks - 1
+
+set output "overlap.png"
+splot "overlap.dat" i last u 1:2:3 w l
