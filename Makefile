@@ -9,7 +9,7 @@ OPTFLAG = -O3
 BIN = main
 
 OBJ = simulation.o eulerData.o slopeLimiter.o levelSet.o twoVector.o \
-	  toro2DTests.o main.o
+	  euler2Dtests.o main.o
 
 $(BIN): $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)

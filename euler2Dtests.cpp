@@ -1,3 +1,43 @@
+#include "euler2Dtests.hpp"
+
+double test1DensityX(double x, double y) {
+	return x <= 0.5 ? 1 : 0.125;
+}
+
+double test1DensityY(double x, double y) {
+	return y <= 0.5 ? 1 : 0.125;
+}
+
+double test1VelocityX(double x, double y) {
+	x = 0;
+	return x;
+}
+
+double test1VelocityY(double x, double y) {
+	y = 0;
+	return y;
+}
+
+double test1PressureX(double x, double y) {
+	return x <= 0.5 ? 1 : 0.1;
+}
+
+double test1PressureY(double x, double y) {
+	return y <= 0.5 ? 1 : 0.1;
+}
+
+double constantVX(double x, double y) {
+	x = 0;
+
+	return y;
+}
+
+double constantVY(double x, double y) {
+	y = 0;
+
+	return y;
+}
+
 double explLS(double x, double y) {
 	double r = 0.4;
 
