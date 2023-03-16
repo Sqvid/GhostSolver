@@ -35,13 +35,13 @@ double constantVY(__attribute__((unused)) double x, __attribute__((unused)) doub
 double explLS(double x, double y) {
 	double r = 0.4;
 
-	return x*x + y*y - r*r;
+	return r*r - x*x - y*y;
 }
 
 double cylExplDensity(double x, double y) {
 	double phi = explLS(x, y);
 
-	return phi <= 0 ? 1 : 0.125;
+	return phi >= 0 ? 1 : 0.125;
 }
 
 double cylExplVelocityX(double x, double y) {
@@ -61,7 +61,7 @@ double cylExplVelocityY(double x, double y) {
 double cylExplPressure(double x, double y) {
 	double phi = explLS(x, y);
 
-	return phi <= 0 ? 1 : 0.1;
+	return phi >= 0 ? 1 : 0.1;
 }
 
 double rigidTestDensity(double x, double y) {

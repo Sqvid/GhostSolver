@@ -15,7 +15,7 @@
 // L subscript for x <= 0.5, R subscript for x > 0.5
 // gamma = 1.4 for all cases.
 //
-// Source for test initail conditions:
+// Source for test initial conditions:
 // Riemann Solvers and Numerical Methods for Fluid Dynamics, E.F. Toro,
 // ISBN : 978-3-662-03492-7
 
@@ -28,13 +28,13 @@ double test1PressureY(double x, double y);
 double constantVY(double x, double y);
 double constantVX(double x, double y);
 
+// Cylindrical explosion test also from Toro.
 double cylExplDensity(double x, double y);
 double cylExplVelocityX(double x, double y);
 double cylExplVelocityY(double x, double y);
 double cylExplPressure(double x, double y);
 
-// Rigid-body tests, initail conditions.
-
+// Rigid-body tests, initial conditions.
 double rigidTestDensity(double x, double y);
 double rigidTestVelocityX(double x, double y);
 double rigidTestVelocityY(double x, double y);
