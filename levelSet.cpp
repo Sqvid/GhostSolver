@@ -25,25 +25,18 @@ double distBetween(double x1, double y1, double x2, double y2) {
 	return std::sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
 }
 
-double circleLS(double x, double y, double t) {
-	auto x0 {0.6}, y0 {0.5}, r {0.2}, vX {0.0};
+double circleLS(double x, double y, __attribute__((unused)) double t) {
+	auto x0 {0.6}, y0 {0.5}, r {0.2};
 
-	// Centre displacement.
-	auto dX {vX*t};
-
-	return r - std::sqrt((x - x0 - dX)*(x - x0 - dX) + (y - y0)*(y - y0));
+	return r - std::sqrt((x - x0)*(x - x0) + (y - y0)*(y - y0));
 }
 
-double separateCirclesLS(double x, double y, double t) {
+double separateCirclesLS(double x, double y, __attribute__((unused)) double t) {
 	auto x1 {0.6}, y1 {0.25}, r1 {0.2};
 	auto x2 {0.6}, y2 {0.75}, r2 {0.2};
 
-	auto dX {0*t};
-
-	// Centre displacement.
-
-	auto phi1 =  r1 - std::sqrt((x - x1 - dX)*(x - x1 - dX) + (y - y1)*(y - y1));
-	auto phi2 =  r2 - std::sqrt((x - x2 - dX)*(x - x2 - dX) + (y - y2)*(y - y2));
+	auto phi1 =  r1 - std::sqrt((x - x1)*(x - x1) + (y - y1)*(y - y1));
+	auto phi2 =  r2 - std::sqrt((x - x2)*(x - x2) + (y - y2)*(y - y2));
 
 	// Inside circle 1.
 	if (phi1 >= 0) {
@@ -58,15 +51,10 @@ double separateCirclesLS(double x, double y, double t) {
 	return phi1 > phi2 ? phi1 : phi2;
 }
 
-double overlapCirclesLS(double x, double y, double t) {
+double overlapCirclesLS(double x, double y, __attribute__((unused)) double t) {
 	auto x0 {0.6}, y1 {0.35}, y2 {0.65}, r {0.2};
-
-	auto dX {0*t};
-
-	// Centre displacement.
-
-	auto phi1 =  r - std::sqrt((x - x0 - dX)*(x - x0 - dX) + (y - y1)*(y - y1));
-	auto phi2 =  r - std::sqrt((x - x0 - dX)*(x - x0 - dX) + (y - y2)*(y - y2));
+	auto phi1 =  r - std::sqrt((x - x0)*(x - x0) + (y - y1)*(y - y1));
+	auto phi2 =  r - std::sqrt((x - x0)*(x - x0) + (y - y2)*(y - y2));
 
 	// Outside both circles.
 	if (phi1 < 0 && phi2 < 0) {
@@ -101,7 +89,7 @@ double overlapCirclesLS(double x, double y, double t) {
 	return distToInterface = std::sqrt((x - xI)*(x - xI) + (y - yI)*(y - yI));
 }
 
-double squareLS(double x, double y, double t) {
+double squareLS(double x, double y, __attribute__((unused)) double t) {
 	// (xC, yC) is the centre of the square. hSide is half the side length.
 	auto xC {0.6}, yC {0.5}, hSide {0.2};
 
