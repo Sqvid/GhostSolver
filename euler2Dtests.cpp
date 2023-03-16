@@ -44,18 +44,12 @@ double cylExplDensity(double x, double y) {
 	return phi >= 0 ? 1 : 0.125;
 }
 
-double cylExplVelocityX(double x, double y) {
-	x = 0;
-	y = 0;
-
-	return x + y;
+double cylExplVelocityX(__attribute__((unused)) double x, __attribute__((unused)) double y) {
+	return 0;
 }
 
-double cylExplVelocityY(double x, double y) {
-	x = 0;
-	y = 0;
-
-	return x + y;
+double cylExplVelocityY(__attribute__((unused)) double x, __attribute__((unused)) double y) {
+	return 0;
 }
 
 double cylExplPressure(double x, double y) {
@@ -64,27 +58,18 @@ double cylExplPressure(double x, double y) {
 	return phi >= 0 ? 1 : 0.1;
 }
 
-double rigidTestDensity(double x, double y) {
-	y = 0;
-
-	return x + y <= 0.2 ? 1.3764 : 1;
+double rigidTestDensity(double x, __attribute__((unused)) double y) {
+	return x <= 0.2 ? 1.3764 : 1;
 }
 
-double rigidTestVelocityX(double x, double y) {
-	y = 0;
-
-	return x + y <= 0.2 ? 0.394 : 0;
+double rigidTestVelocityX(double x, __attribute__((unused)) double y) {
+	return x <= 0.2 ? 0.394 : 0;
 }
 
-double rigidTestVelocityY(double x, double y) {
-	x = 0;
-	y = 0;
-
-	return x + y;
+double rigidTestVelocityY(__attribute__((unused)) double x, __attribute__((unused)) double y) {
+	return 0;
 }
 
-double rigidTestPressure(double x, double y) {
-	y = 0;
-
-	return x + y <= 0.2 ? 1.5698 : 1;
+double rigidTestPressure(double x, __attribute__((unused)) double y) {
+	return x <= 0.2 ? 1.5698 : 1;
 }
