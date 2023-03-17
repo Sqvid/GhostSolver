@@ -2,7 +2,6 @@
 #include <cmath>
 #include <cstddef>
 #include <fstream>
-#include <iostream>
 #include <stdexcept>
 #include <vector>
 
@@ -455,7 +454,8 @@ namespace fvm {
 		double cSoundR = std::sqrt((gamma_ * pR) / rhoR);
 
 		double sPlus {}, sL {}, sR {}, sStar {};
-		Cell hllcL {}, hllcR {}; switch (ax) {
+		Cell hllcL {}, hllcR {};
+		switch (ax) {
 			case Axis::x:
 				// Find approximate left and right sound speeds.
 				sPlus = std::max(std::fabs(vxL) + cSoundL, std::fabs(vxR) + cSoundR);
