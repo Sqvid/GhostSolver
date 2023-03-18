@@ -397,10 +397,8 @@ namespace fvm {
 
 	// Richtmeyer flux function.
 	Cell Simulation::richtmyerFlux_(const Cell& uLeft, const Cell& uRight, Axis ax) {
-		//Cell halfStepUpdate = (0.5 * (uLeft + uRight)) - (0.5 * (dt_/dx_) * (fluxExpr_(uRight) - fluxExpr_(uLeft)));
-		Cell half1 = 0.5 * (uLeft + uRight);
-		Cell half2 = 0.5 * (dt_/dx_) * (fluxExpr_(uRight, ax) - fluxExpr_(uLeft, ax));
-		Cell halfStepUpdate = half1 - half2;
+		Cell halfStepUpdate = 0.5 * (uLeft + uRight)
+			- (0.5 * (dt_/dx_) * (fluxExpr_(uRight, ax) - fluxExpr_(uLeft, ax)));
 
 		return fluxExpr_(halfStepUpdate, ax);
 	}
