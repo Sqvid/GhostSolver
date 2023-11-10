@@ -6,6 +6,7 @@
 *.pdf
 compile_commands.json
 *.md
+!README.md
 
 # Directories
 .cache/
